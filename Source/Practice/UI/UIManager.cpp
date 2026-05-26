@@ -1,0 +1,79 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "../UI/UIManager.h"
+#include "../UI/MainHUD.h"
+#include "../UI/InvenWidget.h"
+
+AUIManager::AUIManager()
+{
+	// 아래 코드는 에셋의 경로가 바뀔 때 마다 수정해야 하기 때문에 좋지 않다.
+	/*ConstructorHelpers::FClassFinder<UUserWidget> Finder(TEXT("/Game/UI/WBP_MainHUD.WBP_MainHUD_C"));
+	if (Finder.Succeeded())
+	{
+		MainHUDClass = Finder.Class;
+	}*/
+}
+
+void AUIManager::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (m_MainHUDClass != nullptr)
+	{
+		m_MainHUD = Cast<UMainHUD>(CreateWidget(GetOwningPlayerController(), m_MainHUDClass));
+
+		if (m_MainHUD)
+		{
+			m_MainHUD->AddToViewport();
+
+			m_MainHUD->GetInventoryWidget()->SetVisibility(ESlateVisibility::Collapsed);
+		}
+
+	}
+}
+
+void AUIManager::UpdatePlayerHP(float _Ratio)
+{
+	m_MainHUD->UpdatePlayerHP(_Ratio);
+}
+
+void AUIManager::ToggleInventory()
+{
+	if (!m_MainHUD)
+		return;
+
+	UInvenWidget* pInvenWidget = m_MainHUD->GetInventoryWidget();
+	if (!pInvenWidget)
+		return;
+
+	// 인벤토리 위젯의 현재 상태 확인
+	ESlateVisibility Visible = pInvenWidget->GetVisibility();
+
+	// 보인다면 끈다.
+	if (Visible == ESlateVisibility::Visible)
+	{
+		pInvenWidget->SetVisibility(ESlateVisibility::Collapsed);
+
+		APlayerController* pPC = GetOwningPlayerController();
+
+		pPC->bShowMouseCursor = false;
+
+		FInputModeGameOnly Mode;
+		
+		pPC->SetInputMode(Mode);
+	}
+	// 꺼져있으면 킨다
+	else
+	{
+		pInvenWidget->SetVisibility(ESlateVisibility::Visible);
+
+		APlayerController* pPC = GetOwningPlayerController();
+
+		pPC->bShowMouseCursor = true;
+
+		FInputModeGameAndUI Mode;
+		Mode.SetWidgetToFocus(pInvenWidget->TakeWidget());
+		pPC->SetInputMode(Mode);
+	}
+}
