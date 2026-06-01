@@ -62,6 +62,24 @@ bool UInventoryManager::AddItem(UDataTable* _Table, FName _RowName)
 	return true;
 }
 
+bool UInventoryManager::RemoveItem(UItemInst* _TargetItem)
+{
+	if (_TargetItem == nullptr)
+		return false;
+
+	// 입력값과 동일한 요소를 Array 내에서 삭제.
+	// 리턴값은 성공 횟수
+	int32 RemoveCount = m_Inven.Remove(_TargetItem);
+
+	if (RemoveCount > 0)
+	{
+		UpdateInventory();
+		return true;	
+	}
+		
+	return false;
+}
+
 void UInventoryManager::UpdateInventory()
 {
 	// HUD에 접근하기

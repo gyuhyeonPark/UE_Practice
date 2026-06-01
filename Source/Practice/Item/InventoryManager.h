@@ -23,6 +23,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	const TArray<UItemInst*>& GetInventoryItems() { return m_Inven; }
 
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	bool RemoveItem(UItemInst* _TargetItem);
+
 public:
 	// 인벤토리에 있는 아이템을 InventoryUI 쪽에 반영.
 	UFUNCTION(BlueprintCallable, Category = "Inventory")

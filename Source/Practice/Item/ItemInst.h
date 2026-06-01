@@ -19,7 +19,10 @@ public:
 
 public:
 	FName GetRowName() const { return m_RowName; }
+
+	UFUNCTION(BlueprintCallable)
 	virtual UDataTable* GetDataTable() const { return nullptr; }
+
 	virtual void SetItemInfo(UDataTable* _Table, FName _RowName) { m_RowName = _RowName; }
 
 	UFUNCTION(BlueprintCallable)

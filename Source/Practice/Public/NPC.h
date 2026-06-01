@@ -58,6 +58,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (DisplayName = "HPBar"))
 	class UWidgetComponent* m_WidgetCom;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Damage", meta = (DisplayName = "DamageClass"))
+	TSubclassOf<AActor> m_DamageClass;
+
 	class UStatComponent* m_NPCStatCom;
 
 	// 체력바가 일정 시간 듸에 꺼지도록 하는 타이머

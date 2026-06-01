@@ -108,6 +108,36 @@ float ANPC::TakeDamage(float _Damage, FDamageEvent const& _DamageEvent, AControl
 										InstigatorPos,
 										GetActorLocation());
 
+	// 4. 받은 데미지를 WidgetComponent를 활용해서 캐릭터 위에 띄운다.
+	if (m_DamageClass)
+	{
+		FVector SpawnPos = GetActorLocation() + FVector(0.f, 0.f, 200.f);
+
+		SpawnPos.X += FMath::FRandRange(-20.f, 20.f);
+		SpawnPos.Y += FMath::FRandRange(-20.f, 20.f);
+
+		// DamageActor에게 데미지값을 전달하고 나서 BeginPlay가 호출되어야 하기 때문에,
+		// 지연 생성 함수를 사용한다.
+		AActor* pSpawnActor = GetWorld()
+			->SpawnActorDeferred<AActor>(m_DamageClass,
+			FTransform(FRotator::ZeroRotator, SpawnPos),
+				this,
+				nullptr, 
+				ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+		
+		// 생성된 데미지 액터에게 띄울 숫자를 알려준다.
+		// Reflection을 활용. 블루프린트의 Damage 변수에 값 직접 주입
+		FProperty* DamageProp = pSpawnActor->GetClass()->FindPropertyByName(TEXT("Damage"));
+		if (FNumericProperty* NumericProp = CastField<FNumericProperty>(DamageProp))
+		{
+			void* ValuePtr = DamageProp->ContainerPtrToValuePtr<void>(pSpawnActor);
+			NumericProp->SetFloatingPointPropertyValue(ValuePtr, fDamage);
+		}
+
+		// BeginPlay 호출
+		pSpawnActor->FinishSpawning(FTransform(FRotator::ZeroRotator, SpawnPos));
+	}
+
 	return fDamage;
 }
 
