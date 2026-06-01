@@ -106,7 +106,11 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"), Instanced)
 	class UInputContainer* m_InputContainer;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pitch")
 	int32 m_MaxPitch;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Pitch")
+	int32 m_CurPitch;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data", meta = (DisplayName = "JumpLockTime"))
 	float m_JumpLockTime;
@@ -127,6 +131,10 @@ protected:
 	float m_RotateScale;
 
 	FGenericTeamId m_TeamId;
+
+protected:
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<class AWeapon> weaponClass;
 
 private:
 	bool m_JumpLock;

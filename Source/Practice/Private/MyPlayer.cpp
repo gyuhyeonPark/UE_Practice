@@ -18,6 +18,8 @@
 
 #include "../UI/UIManager.h"
 
+#include "../Item/Weapon/Weapon.h"
+
 //TEMP
 #include "../Sounds/SoundManager.h"
 
@@ -41,10 +43,12 @@ AMyPlayer::AMyPlayer()
 	m_SpringArm->SetupAttachment(RootComponent);
 	m_SpringArm->TargetArmLength = 250.f;
 	m_SpringArm->bUsePawnControlRotation = true;
+	m_SpringArm->bDoCollisionTest = false;
 
 	// 카메라 컴포넌트 추가
 	m_Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("MainCamera"));
 	m_Camera->SetupAttachment(m_SpringArm);
+	m_Camera->bUsePawnControlRotation = false;
 
 	// SkillComponent 추가하기
 	m_SkillCom = CreateDefaultSubobject<USkillComponent>(TEXT("SkillComponent"));
@@ -98,6 +102,21 @@ void AMyPlayer::BeginPlay()
 	USoundBase* pSoundWave = LoadObject<USoundBase>(nullptr, TEXT("/Game/Sound/BGM_Test.BGM_Test"));
 	
 	pSoundMgr->PlayBGM(pSoundWave, 2.f);
+
+	// skeletal mesh의 소켓에 무기 장착해주기
+	if (weaponClass)
+	{
+		// 무기 생성
+		AWeapon* pWeapon = GetWorld()->SpawnActor<AWeapon>(weaponClass);
+
+		if (pWeapon)
+		{
+			pWeapon->SetOwner(this);
+			pWeapon->AttachToComponent(GetMesh(),
+				FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+				TEXT("WeaponSock"));
+		}
+	}
 }
 
 // Called every frame
@@ -190,16 +209,20 @@ void AMyPlayer::LookAction(const FInputActionValue& _Value)
 		// 현재 회전 상태 가져오기
 		FRotator curRotate = GetControlRotation();
 
-		// 현재 Pitch 회전에 마우스 입력값을 누적한다.
-		float newPitch = input.Y + curRotate.Pitch;
+		// Pitch 누적
+		float newPitch =
+			curRotate.Pitch + (-input.Y * m_RotateScale);
 
-		// 각도 범위를 0 ~ 360 -> -180 ~ 180으로 정규화
-		newPitch = FMath::Clamp(newPitch, -m_MaxPitch, m_MaxPitch);
-		
-		// 더한 값으로 Pitch 수정
+		// Clamp
+		newPitch = FMath::Clamp(
+			newPitch,
+			0.f,
+			m_MaxPitch);
+
+		// 적용
 		curRotate.Pitch = newPitch;
+		m_CurPitch = newPitch;
 
-		// 회전에 적용하기
 		GetController()->SetControlRotation(curRotate);
 	}
 }

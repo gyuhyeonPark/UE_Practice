@@ -22,7 +22,7 @@ void USkillDataPlayer::OnExecuteSkill_Implementation(APawn* _SkillUser, USkillCo
 	AMyPlayer* pPlayer = Cast<AMyPlayer>(_SkillUser);
 	if (pPlayer == nullptr)
 	{
-		// 플레이어기 아닌 다른 캐릭터가 접근하고 있다.
+		// 플레이어가 아닌 다른 캐릭터가 접근하고 있다.
 		UE_LOG(LogTemp, Error, TEXT("SkillUser is not Player"));
 		return;
 	}
