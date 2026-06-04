@@ -23,6 +23,8 @@
 //TEMP
 #include "../Sounds/SoundManager.h"
 
+#include "../Actor/PoseCopy.h"
+
 // Sets default values
 AMyPlayer::AMyPlayer()
 {
@@ -193,6 +195,8 @@ void AMyPlayer::JumpAction(const FInputActionValue& _Value)
 
 	ChangePlayerState(EPlayerState::JUMP);
 
+	StartIllusion(5.f, 0.2f);
+
 	Super::Jump();
 }
 
@@ -295,5 +299,49 @@ float AMyPlayer::TakeDamage(float _Damage, FDamageEvent const& _DamageEvent, ACo
 	}
 
 	return Damage;
+}
+
+void AMyPlayer::StartIllusion(float _Duration, float _Interval)
+{
+	// 일정 시간마다 호출되는 타이머 등록(분신을 생성하는 함수를 일정 간격마다 호출하게 한다
+	GetWorldTimerManager().SetTimer(m_IllusionCreateHandle,
+		this,
+		&AMyPlayer::CreateIllusion,
+		_Interval, true);
+
+	// 지정된 시간이 끝나면, 모든 타이머를 종료시키는 타이머 등록
+	GetWorldTimerManager().SetTimer(m_IllusionStopHandle,
+		this,
+		&AMyPlayer::StopIllusion,
+		_Duration, false);
+}
+
+void AMyPlayer::CreateIllusion()
+{
+	// SkeletalMeshComponent의 월드 위치정보를 구한다.
+	FTransform WorldTrans = FTransform(
+		GetMesh()->GetComponentRotation(),
+		GetMesh()->GetComponentLocation(),
+		GetMesh()->GetComponentScale());
+
+	// 지연스폰으로 일단 객체를 만든다.
+	APoseCopy* pPoseCopy = GetWorld()->SpawnActorDeferred<APoseCopy>(
+		APoseCopy::StaticClass(),
+		WorldTrans,
+		this,
+		nullptr,
+		ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+
+	// 생성된 PoseCopy 액터가 따라할 포즈를 알려준다.
+	pPoseCopy->CopyPos(GetMesh(), m_IllusionMtrl, 3.f);
+
+	// BeginPlay 호출
+	pPoseCopy->FinishSpawning(WorldTrans);
+}
+
+void AMyPlayer::StopIllusion()
+{
+	GetWorldTimerManager().ClearTimer(m_IllusionCreateHandle);
+	GetWorldTimerManager().ClearTimer(m_IllusionStopHandle);
 }
 
