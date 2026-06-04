@@ -90,6 +90,14 @@ public:
 	virtual float TakeDamage(float _Damage, struct FDamageEvent const& _DamageEvent,
 		class AController* _InstigatorController, AActor* _InstigatorActor) override;
 
+	// Illusion
+public:
+	UFUNCTION(BlueprintCallable)
+	void StartIllusion(float _Duration, float _Interval);
+
+	void CreateIllusion();
+	void StopIllusion();
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (DisplayName = "SpringArm"))
 	class USpringArmComponent* m_SpringArm;
@@ -131,6 +139,12 @@ protected:
 	float m_RotateScale;
 
 	FGenericTeamId m_TeamId;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Illusion")
+	class UMaterialInterface* m_IllusionMtrl;
+
+	FTimerHandle m_IllusionCreateHandle;
+	FTimerHandle m_IllusionStopHandle;
 
 protected:
 	UPROPERTY(EditAnywhere)
