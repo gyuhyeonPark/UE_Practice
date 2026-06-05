@@ -119,6 +119,9 @@ void AMyPlayer::BeginPlay()
 				TEXT("WeaponSock"));
 		}
 	}
+
+
+	InitPostProcessMaterial();
 }
 
 // Called every frame
@@ -202,33 +205,45 @@ void AMyPlayer::JumpAction(const FInputActionValue& _Value)
 
 void AMyPlayer::LookAction(const FInputActionValue& _Value)
 {
-	// 1. 마우스 입력 값
-	FVector2D input = _Value.Get<FVector2D>();
+	// 입력 값
+	const FVector2D Input = _Value.Get<FVector2D>();
 
-	// 2. 컨트롤러를 회전 시킨다.
-	if (GetController() != nullptr)
+	AController* pController = GetController();
+
+	if (pController == nullptr)
 	{
-		AddControllerYawInput(input.X * m_RotateScale);
-
-		// 현재 회전 상태 가져오기
-		FRotator curRotate = GetControlRotation();
-
-		// Pitch 누적
-		float newPitch =
-			curRotate.Pitch + (-input.Y * m_RotateScale);
-
-		// Clamp
-		newPitch = FMath::Clamp(
-			newPitch,
-			0.f,
-			m_MaxPitch);
-
-		// 적용
-		curRotate.Pitch = newPitch;
-		m_CurPitch = newPitch;
-
-		GetController()->SetControlRotation(curRotate);
+		return;
 	}
+
+	// 현재 Control Rotation
+	FRotator ControlRot = pController->GetControlRotation();
+
+	// Pitch 정규화
+	float Pitch = FRotator::NormalizeAxis(ControlRot.Pitch);
+
+	// 회전 누적
+	ControlRot.Yaw += Input.X * m_RotateScale;
+
+	Pitch -= Input.Y * m_RotateScale;
+
+	// Clamp
+	Pitch = FMath::Clamp(
+		Pitch,
+		-m_MaxPitch,
+		m_MaxPitch
+	);
+
+	// 적용
+	ControlRot.Pitch = Pitch;
+
+	// Roll 제거
+	ControlRot.Roll = 0.f;
+
+	// 최종 반영
+	pController->SetControlRotation(ControlRot);
+
+	// 필요하다면 저장
+	m_CurPitch = Pitch;
 }
 
 void AMyPlayer::SprintTriggered(const FInputActionValue& _Value)
@@ -298,6 +313,8 @@ float AMyPlayer::TakeDamage(float _Damage, FDamageEvent const& _DamageEvent, ACo
 		m_OnTakeDamage.Broadcast(CurHP, MaxHP);
 	}
 
+	TriggerHeartEffect(3.f, 1.f);
+
 	return Damage;
 }
 
@@ -343,5 +360,82 @@ void AMyPlayer::StopIllusion()
 {
 	GetWorldTimerManager().ClearTimer(m_IllusionCreateHandle);
 	GetWorldTimerManager().ClearTimer(m_IllusionStopHandle);
+}
+
+void AMyPlayer::TriggerHeartEffect(float _Duration, float _MaxWeight)
+{
+	FWeightedBlendable Pair = m_Camera->PostProcessSettings.WeightedBlendables.Array[0];
+	Pair.Weight = 1.f;
+
+	m_HEElapsed = 0.f;
+	m_HEDuration = _Duration;
+	m_HEMaxWeight = _MaxWeight;
+
+	// 일정 시간마다 호출되는 타이머 등록
+	GetWorldTimerManager().SetTimer(m_HEHandle,
+		this,
+		&AMyPlayer::HeartEffectUpdate,
+		0.1f, true);
+}
+
+void AMyPlayer::HeartEffectUpdate()
+{
+	m_HEElapsed += 0.1f;
+	FWeightedBlendable& Pair = m_Camera->PostProcessSettings.WeightedBlendables.Array[0];
+
+	if (m_HEElapsed >= m_HEDuration)
+	{
+		Pair.Weight = 0.f;
+		GetWorldTimerManager().ClearTimer(m_HEHandle);
+	}
+	else
+	{
+		Pair.Weight = 1.f;
+
+		float halfTime = m_HEDuration / 2.f;
+
+		float curAlpha = 0.f;
+
+		if (m_HEElapsed < halfTime)
+		{
+			curAlpha = FMath::Lerp(0.f, m_HEMaxWeight, m_HEElapsed / m_HEDuration);
+		}
+		else
+		{
+			curAlpha = FMath::Lerp(0.f, m_HEMaxWeight, 1 - (m_HEElapsed / m_HEDuration));
+		}
+
+		// 재질 효과 off
+		if (UMaterialInstanceDynamic* pMDI = Cast<UMaterialInstanceDynamic>(Pair.Object))
+		{
+			pMDI->SetScalarParameterValue(TEXT("BlendWeight"), curAlpha);
+		}
+	}
+}
+
+
+
+void AMyPlayer::InitPostProcessMaterial()
+{
+	if (!m_Camera)
+		return;
+
+	m_Camera->PostProcessBlendWeight = 1.f;
+
+	// 각 포스트 프로세스 원본재질의 사본.
+	// 동적재질을 미리 만들어줌.
+	for (auto& Blendable : m_Camera->PostProcessSettings.WeightedBlendables.Array)
+	{
+		// 원래 재질은 원본을 가리키고 있는데,
+		// 이를 동적재질(사본)으로 교체해준다.
+		if (UMaterialInterface* pMtrl = Cast<UMaterialInterface>(Blendable.Object))
+		{
+			UMaterialInstanceDynamic* pMtrlDynamic = UMaterialInstanceDynamic::Create(pMtrl, this);
+
+			Blendable.Object = pMtrlDynamic;
+		}
+
+		Blendable.Weight = 0.f;
+	}
 }
 

@@ -29,6 +29,10 @@ void APoseCopy::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	m_Elapsed += DeltaTime;
+
+	float alpha = 1.f - (m_Elapsed / m_Duration);
+
+	m_MeshCom->SetScalarParameterValueOnMaterials(TEXT("Alpha"), alpha);
 }
 
 void APoseCopy::CopyPos(USkeletalMeshComponent* _Com, class UMaterialInterface* _UseMtrl, float _Duration)
