@@ -98,6 +98,13 @@ public:
 	void CreateIllusion();
 	void StopIllusion();
 
+	UFUNCTION(BlueprintCallable)
+	void TriggerHeartEffect(float _Duration, float _MaxWeight);
+	void HeartEffectUpdate();
+
+public:
+	void InitPostProcessMaterial();
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (DisplayName = "SpringArm"))
 	class USpringArmComponent* m_SpringArm;
@@ -145,6 +152,11 @@ protected:
 
 	FTimerHandle m_IllusionCreateHandle;
 	FTimerHandle m_IllusionStopHandle;
+
+	FTimerHandle m_HEHandle;
+	float m_HEElapsed;
+	float m_HEDuration;
+	float m_HEMaxWeight;
 
 protected:
 	UPROPERTY(EditAnywhere)
