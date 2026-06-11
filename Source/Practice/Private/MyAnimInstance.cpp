@@ -66,4 +66,7 @@ void UMyAnimInstance::NativeUpdateAnimation(float _DT)
 
 	// 월드 시간 누적값 저장
 	m_AccWorldTime = GetWorld()->GetTimeSeconds();
+
+	// Batting Mode 여부
+	m_IsBattingMode = m_Character->GetCombatMode() == ECombatMode::BATTING ? true : false;
 }

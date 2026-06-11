@@ -15,7 +15,6 @@ UENUM(BlueprintType)
 enum class ESkillSlot : uint8
 {
 	LeftClick UMETA(DisplayName = "LeftClick"),
-	RightClick UMETA(DisplayName = "RightClick"),
 	Skill_1 UMETA(DisplayName = "Skill1"),
 	Skill_2 UMETA(DisplayName = "Skill2"),
 	Skill_3 UMETA(DisplayName = "Skill3"),
@@ -110,7 +109,7 @@ public:
 
 	USkeletalMeshComponent* GetMesh() { return m_SkeletalMeshCom; }
 
-	void HitBoxOn();
+	virtual void HitBoxOn();
 	void HitBoxOff();
 
 	// 스킬 공격판정 활성화 시 매 프레임 마다 호출

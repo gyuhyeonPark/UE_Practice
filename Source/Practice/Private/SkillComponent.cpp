@@ -50,7 +50,14 @@ void USkillComponent::Bind(UEnhancedInputComponent* _EIC, UInputContainer* _Inpu
 		FString IAName = FString::Printf(TEXT("IA_%s"), *SlotName);
 
 		if (const UInputAction* pAction = _InputContainer->FindIAByName(IAName))
+		{
 			_EIC->BindAction(pAction, ETriggerEvent::Started, this, &USkillComponent::UseSkill, i);
+			if (IAName == TEXT("IA_RightClick"))
+			{
+				_EIC->BindAction(pAction, ETriggerEvent::Completed, this, &USkillComponent::UseSkill, i);
+			}
+		}
+			
 	}
 }
 

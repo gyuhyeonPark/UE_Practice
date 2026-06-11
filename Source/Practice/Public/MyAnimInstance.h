@@ -41,6 +41,9 @@ protected:
 	bool	m_IsFall;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = "Movement")
+	bool	m_IsBattingMode;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = "Movement")
 	float	m_VerticalSpeed;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = "Movement")

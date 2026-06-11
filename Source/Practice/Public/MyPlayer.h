@@ -10,6 +10,16 @@
 #include "MyPlayer.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnTakeDamage, float, CurHP, float, MaxHP);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FUpdateAimPos, float, XPos, float, YPos);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FInitAimPos, float, XPos, float, YPos);
+
+UENUM(BlueprintType)
+enum class ECombatMode : uint8
+{
+	NORMAL,
+	BATTING,
+	END UMETA(Hidden),
+};
 
 UENUM(BlueprintType)
 enum class EPlayerState : uint8
@@ -52,6 +62,8 @@ public:
 	void SprintTriggered(const struct FInputActionValue& _Value);
 	void SprintCompleted(const struct FInputActionValue& _Value);
 	void InvenToggle(const struct FInputActionValue& _Value);
+	void EnterBattingMode(const struct FInputActionValue& _Value);
+	void ExitBattingMode(const struct FInputActionValue& _Value);	
 
 	void JumpLock()
 	{
@@ -72,7 +84,9 @@ public:
 
 public:
 	EPlayerState GetPlayerState() { return m_PlayerState; }
-	class USkillComponent* GetSkillComponent() { return m_SkillCom; }
+	ECombatMode GetCombatMode() { return m_CombatMode; }
+
+	class USkillComponent* GetSkillComponent();
 
 	void SetMoveScale(float _Scale)
 	{
@@ -102,6 +116,9 @@ public:
 	void TriggerHeartEffect(float _Duration, float _MaxWeight);
 	void HeartEffectUpdate();
 
+	void BattingModeZoom();
+	void BattingModeUnzoom();
+
 public:
 	void InitPostProcessMaterial();
 
@@ -113,7 +130,7 @@ protected:
 	class UCameraComponent* m_Camera;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (DisplayName = "SkillComponent"))
-	class USkillComponent* m_SkillCom;
+	class UPlayerSkillComponent* m_SkillCom;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (DisplayName = "StatComponent"))
 	class UPlayerStatComponent* m_StatCom;
@@ -124,17 +141,20 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pitch")
 	int32 m_MaxPitch;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pitch")
+	int32 m_MinPitch;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Pitch")
 	int32 m_CurPitch;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data", meta = (DisplayName = "JumpLockTime"))
 	float m_JumpLockTime;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimData")
-	UAnimMontage* m_TestMontage;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Status")
 	EPlayerState m_PlayerState;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Status")
+	ECombatMode m_CombatMode;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Status")
 	float m_BaseMaxSpeed;
@@ -158,6 +178,39 @@ protected:
 	float m_HEDuration;
 	float m_HEMaxWeight;
 
+	// Batting Mode Camera Move
+	FTimerHandle m_BModeZoomHandle;
+	float m_BZoomElapsed;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BattingMode")
+	float m_BZoomDuration;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BattingMode")
+	float m_BZoomTick;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BattingMode")
+	float m_NormalFOV;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BattingMode")
+	float m_BModeFOV;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BattingMode")
+	float m_BModeArmLength;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BattingMode")
+	float m_NormalArmLength;
+
+	// Zoom 시작 시점의 카메라 Pitch
+	float m_BModePitch;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BattingMode")
+	float m_EasingStrength;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BattingMode")
+	FVector m_BModeCamOffset;
+
+	// Zoom 
+
 protected:
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<class AWeapon> weaponClass;
@@ -168,4 +221,6 @@ private:
 
 public:
 	FOnTakeDamage m_OnTakeDamage;
+	FUpdateAimPos m_UpdateAimPos;
+	FInitAimPos m_InitAimPos;
 };

@@ -12,7 +12,7 @@
 #include "EnhancedInputSubsystems.h"
 
 #include "InputContainer.h"
-#include "SkillComponent.h"
+#include "PlayerSkillComponent.h"
 #include "PlayerStatComponent.h"
 #include "../GlobalEnum.h"
 
@@ -43,8 +43,8 @@ AMyPlayer::AMyPlayer()
 	// SpringArm Component 추가
 	m_SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	m_SpringArm->SetupAttachment(RootComponent);
-	m_SpringArm->TargetArmLength = 250.f;
 	m_SpringArm->bUsePawnControlRotation = true;
+/*	bUseControllerRotationPitch = true;*/
 	m_SpringArm->bDoCollisionTest = false;
 
 	// 카메라 컴포넌트 추가
@@ -53,7 +53,7 @@ AMyPlayer::AMyPlayer()
 	m_Camera->bUsePawnControlRotation = false;
 
 	// SkillComponent 추가하기
-	m_SkillCom = CreateDefaultSubobject<USkillComponent>(TEXT("SkillComponent"));
+	m_SkillCom = CreateDefaultSubobject<UPlayerSkillComponent>(TEXT("SkillComponent"));
 		
 	m_StatCom = CreateDefaultSubobject<UPlayerStatComponent>(TEXT("StatComponent"));
 
@@ -94,7 +94,7 @@ void AMyPlayer::BeginPlay()
 
 	FText SkillName = NSLOCTEXT("SkillData", "FIREBALL_DESC", "화염구");*/
 
-	// Game Instance 예시 - Singleton 처럼 SoundManager를 사용할 수 있다.
+/*	// Game Instance 예시 - Singleton 처럼 SoundManager를 사용할 수 있다.
 	UGameInstance* pGI = GetWorld()->GetGameInstance();
 
 	// UGameInstanceSubsystem 을 상속 받았다면 GameInstance의 하위항목으로 등록되어 있을 것이다.
@@ -103,7 +103,7 @@ void AMyPlayer::BeginPlay()
 	// SoundManager에게 재생시킬 사운드 에셋 로딩
 	USoundBase* pSoundWave = LoadObject<USoundBase>(nullptr, TEXT("/Game/Sound/BGM_Test.BGM_Test"));
 	
-	pSoundMgr->PlayBGM(pSoundWave, 2.f);
+	pSoundMgr->PlayBGM(pSoundWave, 2.f);*/
 
 	// skeletal mesh의 소켓에 무기 장착해주기
 	if (weaponClass)
@@ -118,10 +118,14 @@ void AMyPlayer::BeginPlay()
 				FAttachmentTransformRules::SnapToTargetNotIncludingScale,
 				TEXT("WeaponSock"));
 		}
+		m_SkillCom->SetWeapon(pWeapon);
 	}
 
 
 	InitPostProcessMaterial();
+
+	m_Camera->SetFieldOfView(m_NormalFOV);
+	m_SpringArm->TargetArmLength = m_NormalArmLength;
 }
 
 // Called every frame
@@ -173,6 +177,13 @@ void AMyPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	if (const UInputAction* pAction = m_InputContainer->FindIAByName(TEXT("IA_InvenToggle")))
 		pEIC->BindAction(pAction, ETriggerEvent::Started, this, &AMyPlayer::InvenToggle);
 
+	// Batting Mode 바인딩
+	if (const UInputAction* pAction = m_InputContainer->FindIAByName(TEXT("IA_RightClick")))
+	{
+		pEIC->BindAction(pAction, ETriggerEvent::Started, this, &AMyPlayer::EnterBattingMode);
+		pEIC->BindAction(pAction, ETriggerEvent::Completed, this, &AMyPlayer::ExitBattingMode);	
+	}
+
 
 	// 스킬 컴포넌트가 담당하는 키 입력에 대해서는 해당 클래스에 바인딩 시킨다.
 	m_SkillCom->Bind(pEIC, m_InputContainer);
@@ -205,45 +216,62 @@ void AMyPlayer::JumpAction(const FInputActionValue& _Value)
 
 void AMyPlayer::LookAction(const FInputActionValue& _Value)
 {
-	// 입력 값
-	const FVector2D Input = _Value.Get<FVector2D>();
-
-	AController* pController = GetController();
-
-	if (pController == nullptr)
+	if (m_CombatMode == ECombatMode::NORMAL)
 	{
-		return;
+		// 입력 값
+		const FVector2D Input = _Value.Get<FVector2D>();
+
+		AController* pController = GetController();
+
+		if (pController == nullptr)
+		{
+			return;
+		}
+
+		// 현재 Control Rotation
+		FRotator ControlRot = pController->GetControlRotation();
+
+		// Pitch 정규화
+		float Pitch = FRotator::NormalizeAxis(ControlRot.Pitch);
+
+		// 회전 누적
+		ControlRot.Yaw += Input.X * m_RotateScale;
+
+		Pitch -= Input.Y * m_RotateScale;
+
+		// Clamp
+		Pitch = FMath::Clamp(
+			Pitch,
+			m_MinPitch,
+			m_MaxPitch
+		);
+
+		// 적용
+		ControlRot.Pitch = Pitch;
+
+		// Roll 제거
+		ControlRot.Roll = 0.f;
+
+		// 최종 반영
+		pController->SetControlRotation(ControlRot);
+
+		// 필요하다면 저장
+		m_CurPitch = Pitch;
 	}
+	else if (m_CombatMode == ECombatMode::BATTING)
+	{
+		if (m_UpdateAimPos.IsBound())
+		{
+			APlayerController* PC = Cast<APlayerController>(GetController());
 
-	// 현재 Control Rotation
-	FRotator ControlRot = pController->GetControlRotation();
-
-	// Pitch 정규화
-	float Pitch = FRotator::NormalizeAxis(ControlRot.Pitch);
-
-	// 회전 누적
-	ControlRot.Yaw += Input.X * m_RotateScale;
-
-	Pitch -= Input.Y * m_RotateScale;
-
-	// Clamp
-	Pitch = FMath::Clamp(
-		Pitch,
-		-m_MaxPitch,
-		m_MaxPitch
-	);
-
-	// 적용
-	ControlRot.Pitch = Pitch;
-
-	// Roll 제거
-	ControlRot.Roll = 0.f;
-
-	// 최종 반영
-	pController->SetControlRotation(ControlRot);
-
-	// 필요하다면 저장
-	m_CurPitch = Pitch;
+			if (PC)
+			{
+				float MouseX, MouseY;
+				PC->GetMousePosition(MouseX, MouseY);
+				m_UpdateAimPos.Broadcast(MouseX, MouseY);
+			}
+		}
+	}
 }
 
 void AMyPlayer::SprintTriggered(const FInputActionValue& _Value)
@@ -262,6 +290,58 @@ void AMyPlayer::InvenToggle(const FInputActionValue& _Value)
 	AUIManager* pUIMgr = Cast<AUIManager>(Cast<APlayerController>(GetController())->GetHUD());
 
 	pUIMgr->ToggleInventory();
+}
+
+void AMyPlayer::EnterBattingMode(const FInputActionValue& _Value)
+{
+	m_CombatMode = ECombatMode::BATTING;
+
+	// 카메라 설정 및 UI 생성
+	m_BZoomElapsed = 0.f;
+	m_BModePitch = GetController()->GetControlRotation().Pitch;
+
+	GetWorldTimerManager().ClearTimer(m_BModeZoomHandle);
+
+	GetWorldTimerManager().SetTimer(m_BModeZoomHandle,
+		this,
+		&AMyPlayer::BattingModeZoom,
+		m_BZoomTick, true);
+
+	if (m_InitAimPos.IsBound())
+	{
+		APlayerController* PC = Cast<APlayerController>(GetController());
+
+		if (PC)
+		{
+			int32 SizeX;
+			int32 SizeY;
+
+			PC->GetViewportSize(SizeX, SizeY);
+
+			PC->SetMouseLocation(
+				SizeX / 2,
+				SizeY / 2);
+
+			float MouseX, MouseY;
+			PC->GetMousePosition(MouseX, MouseY);
+			m_InitAimPos.Broadcast(MouseX, MouseY);
+		}
+	}
+}
+
+void AMyPlayer::ExitBattingMode(const FInputActionValue& _Value)
+{
+	m_CombatMode = ECombatMode::NORMAL;
+
+	// 카메라 설정 및 UI 생성 
+	m_BZoomElapsed = 0.f;
+
+	GetWorldTimerManager().ClearTimer(m_BModeZoomHandle);
+
+	GetWorldTimerManager().SetTimer(m_BModeZoomHandle,
+		this,
+		&AMyPlayer::BattingModeUnzoom,
+		m_BZoomTick, true);
 }
 
 ETeamAttitude::Type AMyPlayer::GetTeamAttitudeTowards(const AActor& Other) const
@@ -283,6 +363,11 @@ ETeamAttitude::Type AMyPlayer::GetTeamAttitudeTowards(const AActor& Other) const
 	}
 
 	return ETeamAttitude::Neutral;
+}
+
+USkillComponent* AMyPlayer::GetSkillComponent()
+{
+	return Cast<USkillComponent>(m_SkillCom);
 }
 
 void AMyPlayer::ChangePlayerState(EPlayerState _NextState)
@@ -364,7 +449,7 @@ void AMyPlayer::StopIllusion()
 
 void AMyPlayer::TriggerHeartEffect(float _Duration, float _MaxWeight)
 {
-	FWeightedBlendable Pair = m_Camera->PostProcessSettings.WeightedBlendables.Array[0];
+	FWeightedBlendable& Pair = m_Camera->PostProcessSettings.WeightedBlendables.Array[0];
 	Pair.Weight = 1.f;
 
 	m_HEElapsed = 0.f;
@@ -398,11 +483,17 @@ void AMyPlayer::HeartEffectUpdate()
 
 		if (m_HEElapsed < halfTime)
 		{
-			curAlpha = FMath::Lerp(0.f, m_HEMaxWeight, m_HEElapsed / m_HEDuration);
+			curAlpha = FMath::Lerp(
+				0.f,
+				m_HEMaxWeight,
+				m_HEElapsed / halfTime);
 		}
 		else
 		{
-			curAlpha = FMath::Lerp(0.f, m_HEMaxWeight, 1 - (m_HEElapsed / m_HEDuration));
+			curAlpha = FMath::Lerp(
+				0.f,
+				m_HEMaxWeight,
+				(m_HEElapsed - halfTime) / halfTime);
 		}
 
 		// 재질 효과 off
@@ -410,6 +501,87 @@ void AMyPlayer::HeartEffectUpdate()
 		{
 			pMDI->SetScalarParameterValue(TEXT("BlendWeight"), curAlpha);
 		}
+	}
+}
+
+void AMyPlayer::BattingModeZoom()
+{
+	m_BZoomElapsed += m_BZoomTick;
+
+	if (m_BZoomElapsed >= m_BZoomDuration)
+	{
+		GetWorldTimerManager().ClearTimer(m_HEHandle);
+	}
+	else
+	{
+		float ratio = m_BZoomElapsed / m_BZoomDuration;
+		float EaseRatio = FMath::InterpEaseOut(0.f, 1.f, ratio, m_EasingStrength);
+
+		// FOV
+		float curAlpha = 0.f;
+		curAlpha = FMath::Lerp(m_NormalFOV, m_BModeFOV, EaseRatio);
+		m_Camera->SetFieldOfView(curAlpha);
+		
+		// SpringArm Length
+		curAlpha = FMath::Lerp(m_NormalArmLength, m_BModeArmLength, EaseRatio);
+		m_SpringArm->TargetArmLength = curAlpha;
+
+		// SpringArm Offset
+		FVector pCamOffset = {};
+
+		curAlpha = FMath::Lerp(0.f, m_BModeCamOffset.Y, EaseRatio);
+		pCamOffset.Y = curAlpha;
+
+		curAlpha = FMath::Lerp(0.f, m_BModeCamOffset.Z, EaseRatio);
+		pCamOffset.Z = curAlpha;
+		
+		m_SpringArm->SocketOffset = pCamOffset;
+	
+		// Pitch 0으로 보간.
+		FRotator ControlRot = GetController()->GetControlRotation();
+		curAlpha = FMath::Lerp(m_BModePitch, 0.f, EaseRatio);
+		ControlRot.Pitch = curAlpha;
+
+		GetController()->SetControlRotation(ControlRot);
+	}
+}
+
+void AMyPlayer::BattingModeUnzoom()
+{
+	m_BZoomElapsed += m_BZoomTick;
+
+	if (m_BZoomElapsed >= m_BZoomDuration)
+	{
+		GetWorldTimerManager().ClearTimer(m_HEHandle);
+	}
+	else
+	{
+		m_SpringArm->bUsePawnControlRotation = true;
+
+		float ratio = m_BZoomElapsed / m_BZoomDuration;
+
+		float EaseRatio = FMath::InterpEaseOut(0.f, 1.f, ratio, m_EasingStrength);
+
+		float curAlpha = 0.f;
+		curAlpha = FMath::Lerp(m_BModeFOV, m_NormalFOV, EaseRatio);
+		m_Camera->SetFieldOfView(curAlpha);
+
+		// SpringArm Length
+		curAlpha = FMath::Lerp(m_BModeArmLength, m_NormalArmLength, EaseRatio);
+		m_SpringArm->TargetArmLength = curAlpha;
+
+		// SpringArm Offset
+		FVector pCamOffset = {};
+
+		curAlpha = FMath::Lerp(m_BModeCamOffset.Y, 0.f, EaseRatio);
+		pCamOffset.Y = curAlpha;
+
+		curAlpha = FMath::Lerp(m_BModeCamOffset.Z, 0.f, EaseRatio);
+		pCamOffset.Z = curAlpha;
+
+		m_SpringArm->SocketOffset = pCamOffset;
+
+		// Unzoom에선 Pitch 조절 X
 	}
 }
 

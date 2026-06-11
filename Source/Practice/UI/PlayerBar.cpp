@@ -12,8 +12,6 @@ void UPlayerBar::NativeOnInitialized()
 	Super::NativeOnInitialized();
 
 	// Player Actor의 OnTakeAnyDamage 델리게이트에 특정 멤버함수를 미리 등록해둔다.
-	//GetOwnimgPlayerPawn()->OnTakeAnyDamage.AddDynamic(this, &UPlayerBar::UpdateHPBar);
-
 	if (AMyPlayer* pPlayer = Cast<AMyPlayer>(GetOwningPlayerPawn()))
 	{
 		pPlayer->m_OnTakeDamage.AddDynamic(this, &UPlayerBar::UpdateHPBar_Alt);
