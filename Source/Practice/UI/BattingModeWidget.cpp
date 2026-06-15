@@ -40,17 +40,18 @@ void UBattingModeWidget::UpdateAimPos_Alt(float _XPos, float _YPos)
 		{
 			PC->GetViewportSize(ViewX, ViewY);
 
+			// 뷰포트 기준 -1 ~ +1 정규화
 			float NormalizedX = (_XPos - ViewX * 0.5f) / (ViewX * 0.5f);
 			float NormalizedY = (_YPos - ViewY * 0.5f) / (ViewY * 0.5f);
 
-			FGeometry ZoneGeometry = m_ZoneImg->GetCachedGeometry();
-			FVector2D ZoneUIScale = ZoneGeometry.GetAbsoluteSize();
+			// Zone UI 크기의 절반만큼만 이동 (Zone 밖으로 못 나가게)
+			FGeometry ZoneGeometry = m_ZoneScale->GetCachedGeometry();
+			FVector2D ZoneLocalSize = ZoneGeometry.GetLocalSize();
 
-			Transform.Translation.X = NormalizedX * (ZoneUIScale.X);
-			Transform.Translation.Y = NormalizedY * (ZoneUIScale.Y) - 27.f;
+			Transform.Translation.X = NormalizedX * (ZoneLocalSize.X * 0.5f);
+			Transform.Translation.Y = NormalizedY * (ZoneLocalSize.Y * 0.5f) - 27.f;
 
 			m_AimImg->SetRenderTransform(Transform);
-
 		}
 	}
 }

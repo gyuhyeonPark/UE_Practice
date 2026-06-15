@@ -35,7 +35,7 @@ protected:
 	class UImage* m_AimImg;
 
 	UPROPERTY(meta = (BindWidget))
-	class UImage* m_ZoneImg;
+	class UImage* m_ZoneScale;
 
 	FVector2D m_AimingStartPos;
 
