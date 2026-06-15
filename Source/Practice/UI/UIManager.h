@@ -26,6 +26,7 @@ public:
 	void UpdatePlayerHP(float _Ratio);
 
 	void ToggleInventory();
+	void ToggleBattingUI();
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "UI")

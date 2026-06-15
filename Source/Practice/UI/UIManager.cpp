@@ -4,6 +4,7 @@
 #include "../UI/UIManager.h"
 #include "../UI/MainHUD.h"
 #include "../UI/InvenWidget.h"
+#include "../UI/BattingModeWidget.h"
 
 AUIManager::AUIManager()
 {
@@ -75,5 +76,26 @@ void AUIManager::ToggleInventory()
 		FInputModeGameAndUI Mode;
 		Mode.SetWidgetToFocus(pInvenWidget->TakeWidget());
 		pPC->SetInputMode(Mode);
+	}
+}
+
+void AUIManager::ToggleBattingUI()
+{
+	if (!m_MainHUD)
+		return;
+
+	UBattingModeWidget* pBModeWidget = m_MainHUD->GetBattingModeWidget();
+	if (!pBModeWidget)
+		return;
+
+	ESlateVisibility Visible = pBModeWidget->GetVisibility();
+
+	if (Visible == ESlateVisibility::Visible)
+	{
+		pBModeWidget->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	else
+	{
+		pBModeWidget->SetVisibility(ESlateVisibility::Visible);
 	}
 }

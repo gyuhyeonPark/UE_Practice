@@ -21,7 +21,10 @@ bool USkillDataBase::CanUseSkill_Implementation(APawn* _SkillUser, class USkillC
 void USkillDataBase::OnExecuteSkill_Implementation(APawn* _SkillUser, class USkillComponent* _SkillCom)
 {
 	// 쿨타임 등록
-	_SkillCom->AddSkillUseTime(GetPrimaryAssetId());
+	if (_SkillUser->IsLocallyControlled())
+	{
+		_SkillCom->AddSkillUseTime(GetPrimaryAssetId());
+	}
 }
 
 void USkillDataBase::OnEndSkill_Implementation(APawn* _SkillUser, class USkillComponent* _SkillCom)

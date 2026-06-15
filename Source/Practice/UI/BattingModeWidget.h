@@ -29,6 +29,9 @@ protected:
 
 	UFUNCTION()
 	void InitAimPos_Alt(float _XPos, float _YPos);
+	
+	// 타격 시, 2차원 상의 UI 타격 Vector2D를 월드 위치로 변환하여 반환해주는 함수. 
+	FVector3d GetImpactWorldPos();
 
 protected:
 	UPROPERTY(meta = (BindWidget))

@@ -30,10 +30,15 @@ public:
 
 	class UInvenWidget* GetInventoryWidget() const { return InvenWidget; }
 
+	class UBattingModeWidget* GetBattingModeWidget() const { return BattingModeWidget; }
+
 protected:
 	UPROPERTY(meta = (BindWidget))
 	class UPlayerBar* PlayerBarWidget;
 
 	UPROPERTY(meta = (BindWidget))
 	class UInvenWidget* InvenWidget;
+
+	UPROPERTY(meta = (BindWidget))
+	class UBattingModeWidget* BattingModeWidget;
 };

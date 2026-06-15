@@ -62,8 +62,9 @@ public:
 public:
 	// 키 입력 시 호출될 Delegate 함수
 	// SkillSlot의 멤버를 param으로 받을 예정
-	void UseSkill(int32 _SlotIndex) { TryExecuteSkill(_SlotIndex); }	// EIC Delegate Register
+	void UseSkill(int32 _SlotIndex);	// EIC Delegate Register
 	bool TryExecuteSkill(int32 _SlotIndex);
+	void TryExecuteSkillVisual(int32 _SlotIdx, int32 _ComboIdx);
 	void EndSkill();
 
 	void CancleCurSkill();
@@ -116,6 +117,16 @@ public:
 	void HitBoxCheck();
 
 	void Fire();
+
+public:
+	// 서버 입장에서 다른 클라이언트들에게 스킬 모션 재생을 알려주는 멀티캐스트 함수
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_SkillExecute(int32 _Slot, int32 _ComboIdx);
+
+	// 클라이언트 입장에서, 서버쪽에 자신이 스킬을 사용했음을 알리는 함수.
+	// Server : 서버쪽에서 실행해야 하는 함수, WithValidation : 검증 포함
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_NotifySkillExecute(int32 _Slot, int32 _ComboIdx);
 
 protected:
 	// 스킬 장착 가능 슬롯 (Blueprint)

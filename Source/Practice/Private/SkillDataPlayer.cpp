@@ -32,18 +32,21 @@ void USkillDataPlayer::OnExecuteSkill_Implementation(APawn* _SkillUser, USkillCo
 		pPlayer->GetMesh()->GetAnimInstance()->Montage_Play(Montage, 1.f);
 
 	// 플레이어 상태 변경
-	if (CanMove)
+	if (_SkillUser->IsLocallyControlled()) 
 	{
-		pPlayer->ChangePlayerState(EPlayerState::UseMoveSkill);
-		pPlayer->SetMoveScale(MoveSpeedScale);
-	}
-	else
-	{
-		pPlayer->ChangePlayerState(EPlayerState::UseSkill);
-		pPlayer->SetMoveScale(0.f);
-	}
+		if (CanMove)
+		{
+			pPlayer->ChangePlayerState(EPlayerState::UseMoveSkill);
+			pPlayer->SetMoveScale(MoveSpeedScale);
+		}
+		else
+		{
+			pPlayer->ChangePlayerState(EPlayerState::UseSkill);
+			pPlayer->SetMoveScale(0.f);
+		}
 
-	pPlayer->SetRotateScale(RotateSpeed);
+		pPlayer->SetRotateScale(RotateSpeed);
+	}
 }
 
 void USkillDataPlayer::OnEndSkill_Implementation(APawn* _SkillUser, USkillComponent* _SkillCom)

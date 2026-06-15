@@ -28,6 +28,8 @@ USkillComponent::USkillComponent()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 
+	SetIsReplicated(true);
+
 	// Skill Slot을 Editor 상에 보이도록 미리 추가해둔다
 	for (int32 i = 0; i < (int32)ESkillSlot::END; ++i)
 	{
@@ -111,6 +113,26 @@ void USkillComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	// ...
 }
  
+void USkillComponent::UseSkill(int32 _SlotIndex)
+{
+	TryExecuteSkill(_SlotIndex);
+	if (TryExecuteSkill(_SlotIndex))
+	{
+		// 방장(서버) 쪽에서 호출되는 상황인지 확인
+		if (GetOwner()->HasAuthority())
+		{
+			// 멀티캐스트 - 다른 클라이언트들에게도 상황을 전달해야 한다.
+			Multicast_SkillExecute(_SlotIndex, m_CurComboIdx);
+		}
+		else
+		{
+			// Client 환경
+			// 서버에 스킬을 사용한 사실을 알려줘야 한다.
+			Server_NotifySkillExecute(_SlotIndex, m_CurComboIdx);
+		}
+	}
+}
+
 bool USkillComponent::TryExecuteSkill(int32 _SlotIndex)
 {
 	if (!m_bSkillLoaded)
@@ -168,6 +190,30 @@ bool USkillComponent::TryExecuteSkill(int32 _SlotIndex)
 		}
 	}
 	return false;
+}
+
+void USkillComponent::TryExecuteSkillVisual(int32 _SlotIdx, int32 _ComboIdx)
+{
+	if (!m_SkillSlots.IsValidIndex(_SlotIdx) || !m_SkillSlots[_SlotIdx].SkillData.IsValid())
+		return;
+
+	// 최초 실행
+	if (_ComboIdx == 0)
+	{
+		m_CurSkillData = m_SkillSlots[_SlotIdx].SkillData;
+		m_CurSkillData->OnExecuteSkill(Cast<APawn>(GetOwner()), this);
+	}
+	else
+	{
+		m_CurComboIdx = _ComboIdx;
+		FName NextSection = *FString::Printf(TEXT("Attack%d"), (m_CurComboIdx + 1));
+
+		// 재생중인 몽타주의 섹션을 이동.
+		if (m_SkeletalMeshCom && m_SkeletalMeshCom->GetAnimInstance())
+		{
+			m_SkeletalMeshCom->GetAnimInstance()->Montage_JumpToSection(NextSection);
+		}
+	}
 }
 
 void USkillComponent::EndSkill()
@@ -318,3 +364,29 @@ void USkillComponent::Fire()
 	m_CurSkillData->OnFire(Cast<APawn>(GetOwner()), this);
 }
 
+void USkillComponent::Multicast_SkillExecute_Implementation(int32 _Slot, int32 _ComboIdx)
+{
+	APawn* pPawn = Cast<APawn>(GetOwner());
+
+	// Multicast는 내 자신의 객체에서도 호출된다.
+	// 내 Pawn은 이미 스킬을 실행했기 때문에, IsLocallyControlled 함수를 통해
+	// 본인 자신일 경우엔 기능을 수행하지 않는다.
+	if (pPawn && pPawn->IsLocallyControlled())
+		return;
+
+	// 똑같이 스킬을 따라한다.
+	TryExecuteSkillVisual(_Slot, _ComboIdx);
+}
+
+void USkillComponent::Server_NotifySkillExecute_Implementation(int32 _Slot, int32 _ComboIdx)
+{
+	// 클라이언트가 호출하고 나서, 호스트의 서버의 해당 클라 객체 폰에 대한 동작을 정의한다.
+
+	// 멀티캐스트
+	Multicast_SkillExecute(_Slot, _ComboIdx);
+}
+
+bool USkillComponent::Server_NotifySkillExecute_Validate(int32 _Slot, int32 _ComboIdx)
+{
+	return true;
+}

@@ -7,6 +7,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/Boxcomponent.h"
+#include "Components/Widget.h"
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -53,8 +54,7 @@ AMyPlayer::AMyPlayer()
 	m_Camera->bUsePawnControlRotation = false;
 
 	// SkillComponent 추가하기
-	m_SkillCom = CreateDefaultSubobject<UPlayerSkillComponent>(TEXT("SkillComponent"));
-		
+	m_SkillCom = CreateDefaultSubobject<UPlayerSkillComponent>(TEXT("PlayerSkillComponent"));
 	m_StatCom = CreateDefaultSubobject<UPlayerStatComponent>(TEXT("StatComponent"));
 
 	// 캡슐 컴포넌트 절반길이 설정
@@ -184,7 +184,6 @@ void AMyPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		pEIC->BindAction(pAction, ETriggerEvent::Completed, this, &AMyPlayer::ExitBattingMode);	
 	}
 
-
 	// 스킬 컴포넌트가 담당하는 키 입력에 대해서는 해당 클래스에 바인딩 시킨다.
 	m_SkillCom->Bind(pEIC, m_InputContainer);
 }
@@ -218,6 +217,7 @@ void AMyPlayer::LookAction(const FInputActionValue& _Value)
 {
 	if (m_CombatMode == ECombatMode::NORMAL)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("LookAction Call"));
 		// 입력 값
 		const FVector2D Input = _Value.Get<FVector2D>();
 
@@ -295,7 +295,8 @@ void AMyPlayer::InvenToggle(const FInputActionValue& _Value)
 void AMyPlayer::EnterBattingMode(const FInputActionValue& _Value)
 {
 	m_CombatMode = ECombatMode::BATTING;
-
+	AUIManager* pUIMgr = Cast<AUIManager>(Cast<APlayerController>(GetController())->GetHUD());
+	pUIMgr->ToggleBattingUI();
 	// 카메라 설정 및 UI 생성
 	m_BZoomElapsed = 0.f;
 	m_BModePitch = GetController()->GetControlRotation().Pitch;
@@ -332,6 +333,8 @@ void AMyPlayer::EnterBattingMode(const FInputActionValue& _Value)
 void AMyPlayer::ExitBattingMode(const FInputActionValue& _Value)
 {
 	m_CombatMode = ECombatMode::NORMAL;
+	AUIManager* pUIMgr = Cast<AUIManager>(Cast<APlayerController>(GetController())->GetHUD());
+	pUIMgr->ToggleBattingUI();
 
 	// 카메라 설정 및 UI 생성 
 	m_BZoomElapsed = 0.f;
