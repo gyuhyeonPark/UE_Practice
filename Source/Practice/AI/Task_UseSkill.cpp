@@ -40,6 +40,9 @@ EBTNodeResult::Type UTask_UseSkill::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 		// 스킬이 종료될 때 호출받을 Delegate 를 등록.
 		pSkillCom->m_SkillEndDelegate.AddUObject(this, &UTask_UseSkill::OnSkillEnd, &OwnerComp);
 
+		// 멀티캐스트 - 다른 클라이언트들에게도 상황을 전달.
+		pSkillCom->Multicast_SkillExecute((int32)ESkillSlot::Skill_1, 0);
+
 		// 스킬 시전 시간 동안 Skill Task가 진행중임을 리턴한다.
 		return EBTNodeResult::InProgress;
 	}

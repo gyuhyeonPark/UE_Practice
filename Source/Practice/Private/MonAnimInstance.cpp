@@ -16,12 +16,14 @@ void UMonAnimInstance::AnimNotify_OnLandingStart()
 
 void UMonAnimInstance::AnimNotify_SkillEnd()
 {
-	m_Character->GetSkillComponent()->EndSkill();
+	if (m_Character->IsLocallyControlled())
+		m_Character->GetSkillComponent()->EndSkill();
 }
 
 void UMonAnimInstance::AnimNotify_Fire()
 {
-	m_Character->GetSkillComponent()->Fire();
+	if (m_Character->IsLocallyControlled())
+		m_Character->GetSkillComponent()->Fire();
 }
 
 void UMonAnimInstance::NativeInitializeAnimation()

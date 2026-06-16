@@ -17,7 +17,9 @@ public class Practice : ModuleRules
 			"Niagara",
 			"AIModule",
 			"GameplayTasks",
-			"UMG"
+			"UMG",
+			"InterchangeCore",        // 추가
+			"InterchangeFactoryNodes" // 추가
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });

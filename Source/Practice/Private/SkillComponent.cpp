@@ -28,7 +28,7 @@ USkillComponent::USkillComponent()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 
-	SetIsReplicated(true);
+	SetIsReplicatedByDefault(true);
 
 	// Skill Slot을 Editor 상에 보이도록 미리 추가해둔다
 	for (int32 i = 0; i < (int32)ESkillSlot::END; ++i)
@@ -39,7 +39,7 @@ USkillComponent::USkillComponent()
 	// ...
 }
 
-void USkillComponent::Bind(UEnhancedInputComponent* _EIC, UInputContainer* _InputContainer)
+/*void USkillComponent::Bind(UEnhancedInputComponent* _EIC, UInputContainer* _InputContainer)
 {
 	if (_EIC == nullptr || _InputContainer == nullptr)
 		return;
@@ -61,7 +61,7 @@ void USkillComponent::Bind(UEnhancedInputComponent* _EIC, UInputContainer* _Inpu
 		}
 			
 	}
-}
+}*/
 
 
 // Called when the game starts
@@ -115,7 +115,6 @@ void USkillComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
  
 void USkillComponent::UseSkill(int32 _SlotIndex)
 {
-	TryExecuteSkill(_SlotIndex);
 	if (TryExecuteSkill(_SlotIndex))
 	{
 		// 방장(서버) 쪽에서 호출되는 상황인지 확인
@@ -326,12 +325,24 @@ void USkillComponent::HitBoxCheck()
 				if (IsHit(Result.GetActor()))
 				{
 					APawn* SkillUser = Cast<APawn>(GetOwner());
-					UGameplayStatics::ApplyDamage(Result.GetActor(),
-						m_CurSkillData->Damage,
-						SkillUser->GetController(),
-						SkillUser,
-						UDamageType::StaticClass());
 					
+					if (SkillUser->HasAuthority())
+					{
+						UGameplayStatics::ApplyDamage(Result.GetActor(),
+							m_CurSkillData->Damage,
+							SkillUser->GetController(),
+							SkillUser,
+							UDamageType::StaticClass());
+
+						Multicast_PlayHitEffect(Result.ImpactPoint, Result.ImpactNormal);
+					}
+					else
+					{
+						// 서버에게 이펙트 발생 알리기 + 데미지 상황
+						Server_NotifyDamage(Result.GetActor(), m_CurSkillData->Damage, Result.ImpactPoint, Result.ImpactNormal);
+					}
+
+
 					// 히트 이펙트
 					if (m_CurSkillData->HitEffect)
 					{
@@ -387,6 +398,43 @@ void USkillComponent::Server_NotifySkillExecute_Implementation(int32 _Slot, int3
 }
 
 bool USkillComponent::Server_NotifySkillExecute_Validate(int32 _Slot, int32 _ComboIdx)
+{
+	return true;
+}
+
+void USkillComponent::Multicast_PlayHitEffect_Implementation(FVector _ImpactPoint, FVector _ImpactNormal)
+{
+	if (APawn* pPawn = Cast<APawn>(GetOwner()))
+	{
+		if (pPawn->IsLocallyControlled() == false)
+		{
+			// 히트 이펙트
+			if (m_CurSkillData->HitEffect)
+			{
+				// 충돌 위치에, m_HitEffect 나이아가라 재생하는 Actor 생성
+				UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld()
+					, m_CurSkillData->HitEffect
+					, _ImpactPoint
+					, _ImpactNormal.Rotation());
+			}
+		}
+	}
+}
+
+void USkillComponent::Server_NotifyDamage_Implementation(AActor* _Target, float _Damage, FVector _ImpactPoint, FVector _ImpactNormal)
+{
+	APawn* SkillUser = Cast<APawn>(GetOwner());
+
+	UGameplayStatics::ApplyDamage(_Target,
+		_Damage,
+		SkillUser->GetController(),
+		SkillUser,
+		UDamageType::StaticClass());
+
+	Multicast_PlayHitEffect(_ImpactPoint, _ImpactNormal);
+}
+
+bool USkillComponent::Server_NotifyDamage_Validate(AActor* _Target, float _Damage, FVector _ImpactPoint, FVector _ImpactNormal)
 {
 	return true;
 }

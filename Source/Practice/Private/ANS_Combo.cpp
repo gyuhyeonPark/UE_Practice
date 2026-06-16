@@ -6,24 +6,32 @@
 
 void UANS_Combo::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration, const FAnimNotifyEventReference& EventReference)
 {
+	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
+
 	USkillComponent* pSkillCom = MeshComp->GetOwner()->GetComponentByClass<USkillComponent>();
 	if (pSkillCom == nullptr)
 		return;
 
-	pSkillCom->OpenComboWindow();
-}
+	APawn* pSkillUser = Cast<APawn>(MeshComp->GetOwner());
 
-void UANS_Combo::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float FrameDeltaTime, const FAnimNotifyEventReference& EventReference)
-{
-	// notify 이후 매 프레임 호출되는 함수.
-	// 충돌 감지 등을 처리하면 좋을 듯.
+	if (pSkillUser->IsLocallyControlled())
+	{
+		pSkillCom->OpenComboWindow();
+	}
 }
 
 void UANS_Combo::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
+	Super::NotifyEnd(MeshComp, Animation, EventReference);
+
 	USkillComponent* pSkillCom = MeshComp->GetOwner()->GetComponentByClass<USkillComponent>();
 	if (pSkillCom == nullptr)
 		return;
 
-	pSkillCom->CloseComboWindow();
+	APawn* pSkillUser = Cast<APawn>(MeshComp->GetOwner());
+
+	if (pSkillUser->IsLocallyControlled())
+	{
+		pSkillCom->CloseComboWindow();
+	}
 }

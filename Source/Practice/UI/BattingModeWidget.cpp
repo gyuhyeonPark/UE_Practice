@@ -79,15 +79,22 @@ FVector3d UBattingModeWidget::GetImpactWorldPos()
 {
 	FVector2D curAimPos = m_AimImg->RenderTransform.Translation;
 
-/*	if (AMyPlayer* pPlayer = Cast<AMyPlayer>(GetOwningPlayerPawn()))
+	FVector3d pos;
+
+	if (AMyPlayer* pPlayer = Cast<AMyPlayer>(GetOwningPlayerPawn()))
 	{
+		pos = pPlayer->GetOwner()->GetTransform().GetLocation();
 		if (APlayerController* PC = Cast<APlayerController>(pPlayer->GetController()))
 		{
-			PC->DeprojectScreenPositionToWorld(curAimPos.X, curAimPos.Y, GetWorld()-)
+			FVector pAimWorldPos;
+			FVector pAimFowardDir;
+
+			PC->DeprojectScreenPositionToWorld(curAimPos.X, curAimPos.Y, pAimWorldPos, pAimFowardDir);
+			
+			pos.Y = pAimWorldPos.Y;
+			pos.Z = pAimWorldPos.Z;
 		}
-	}*/
+	}
 
-
-
-	return FVector3d();
+	return pos;
 }

@@ -44,9 +44,6 @@ public:
 	// Sets default values for this component's properties
 	USkillComponent();
 
-public:
-	void Bind(UEnhancedInputComponent* _EIC, class UInputContainer* _InputContainer);
-
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -127,6 +124,13 @@ public:
 	// Server : 서버쪽에서 실행해야 하는 함수, WithValidation : 검증 포함
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_NotifySkillExecute(int32 _Slot, int32 _ComboIdx);
+
+	// 서버 입장에서 다른 클라이언트들에게, 특정 위치에 타격 이펙트가 재생되도록 알리는 멀티캐스트 함수
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayHitEffect(FVector _ImpactPoint, FVector _ImpactNormal);
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_NotifyDamage(AActor* _Target, float _Damage, FVector _ImpactPoint, FVector _ImpactNormal);
 
 protected:
 	// 스킬 장착 가능 슬롯 (Blueprint)
