@@ -26,7 +26,9 @@ public:
 	void UpdatePlayerHP(float _Ratio);
 
 	void ToggleInventory();
-	void ToggleBattingUI();
+
+/*	void ToggleBattingUI();*/
+/*	void SetBattingUITransform(FVector _WorldLocation, FVector _WorldScale);*/
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "UI")

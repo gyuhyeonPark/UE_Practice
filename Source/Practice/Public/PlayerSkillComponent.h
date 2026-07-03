@@ -6,9 +6,6 @@
 #include "SkillComponent.h"
 #include "PlayerSkillComponent.generated.h"
 
-/**
- * 
- */
 UCLASS()
 class PRACTICE_API UPlayerSkillComponent : public USkillComponent
 {
@@ -17,14 +14,28 @@ class PRACTICE_API UPlayerSkillComponent : public USkillComponent
 public:
 	UPlayerSkillComponent();
 
-public:
-	void SetWeapon(class AWeapon* _Weapon) { m_Weapon = _Weapon; }
+	virtual void BeginPlay() override;
+
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 public:
 	void Bind(UEnhancedInputComponent* _EIC, class UInputContainer* _InputContainer);
 
-	virtual void HitBoxOn() override;
+	void SetSkillSlotBattingMode() { m_SelectedSkillSlot = &m_PlayerSkillSlots; }
+
+public:
+	void StartCharge(int32 _SlotIndex, bool _IsBMode);
+	void ChargeTick();
+	void SwingFunc();
 
 protected:
-	class AWeapon* m_Weapon;
+	// 스킬 장착 가능 슬롯 (Blueprint)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PlayerSkills", meta = (TitleProperty = "SlotType"))
+	TArray<FSkillSlotInfo>	m_PlayerSkillSlots;
+
+	bool m_IsChargeOn;
+
+	float m_ChargeElapsed;
+
+	UAnimMontage* m_BattingMontage;
 };

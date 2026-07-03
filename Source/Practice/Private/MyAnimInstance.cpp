@@ -6,6 +6,9 @@
 #include "SkillComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
+#include "../UI/UIManager.h"
+#include "Engine/StaticMeshActor.h"
+
 void UMyAnimInstance::AnimNotify_OnLandingStart()
 {
 	m_Character->JumpLock();
@@ -16,14 +19,25 @@ void UMyAnimInstance::AnimNotify_OnLandingStart()
 
 void UMyAnimInstance::AnimNotify_SkillEnd()
 {
-	if (m_Character->IsLocallyControlled())
+	if (m_Character->HasAuthority() || m_Character->IsLocallyControlled())
 		m_Character->GetSkillComponent()->EndSkill();
+}
+
+void UMyAnimInstance::AnimNotify_BatImpact()
+{
+	// TEMP
+	AUIManager* pUIMgr = Cast<AUIManager>(Cast<APlayerController>(m_Character->GetController())->GetHUD());
 }
 
 void UMyAnimInstance::AnimNotify_Fire()
 {
 	if (m_Character->IsLocallyControlled())
 		m_Character->GetSkillComponent()->Fire();
+}
+
+void UMyAnimInstance::AnimNotify_ChargeEnd()
+{
+	Montage_Pause();
 }
 
 void UMyAnimInstance::NativeInitializeAnimation()

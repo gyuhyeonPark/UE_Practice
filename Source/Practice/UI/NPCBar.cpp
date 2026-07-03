@@ -3,6 +3,7 @@
 
 #include "../UI/NPCBar.h"
 #include "Components/ProgressBar.h"
+#include "StatComponent.h"
 
 void UNPCBar::NativeOnInitialized()
 {
@@ -19,7 +20,7 @@ void UNPCBar::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 	Super::NativeTick(MyGeometry, InDeltaTime);
 }
 
-void UNPCBar::UpdateHPBar(float _CurHP, float _MaxHP)
+void UNPCBar::UpdateHPBar(UStatComponent* _StatCom)
 {
-	m_HPBar->SetPercent(_CurHP / _MaxHP);
+	m_HPBar->SetPercent(_StatCom->GetStat(TEXT("CurHP")) / _StatCom->GetStat(TEXT("MaxHP")));
 }

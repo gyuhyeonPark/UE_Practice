@@ -55,10 +55,6 @@
 			"Enabled": false
 		},
 		{
-			"Name": "GLTFExporter",
-			"Enabled": false
-		},
-		{
 			"Name": "Interchange",
 			"Enabled": false,
 			"SupportedTargetPlatforms": [

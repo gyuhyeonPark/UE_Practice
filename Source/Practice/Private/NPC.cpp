@@ -40,11 +40,6 @@ void ANPC::BeginPlay()
 
 	if (m_WidgetCom)
 		m_WidgetCom->SetVisibility(false);
-
-	if (UNPCBar* pWidget = Cast<UNPCBar>(m_WidgetCom->GetWidget()))
-	{
-		m_OnTakeDamage.AddDynamic(pWidget, &UNPCBar::UpdateHPBar);
-	}
 }
 
 // Called every frame
@@ -80,14 +75,8 @@ float ANPC::TakeDamage(float _Damage, FDamageEvent const& _DamageEvent, AControl
 		m_NPCStatCom->SetStat(TEXT("CurHP"), CurHP);
 
 		if (m_OnTakeDamage.IsBound())
-			m_OnTakeDamage.Broadcast(CurHP, MaxHP);
-	
-		// 타이머 등록
-		// 3초 뒤에 위젯 렌더링 off
-		if (m_WidgetCom)
-			m_WidgetCom->SetVisibility(true);
+			m_OnTakeDamage.Broadcast();
 
-		GetWorldTimerManager().SetTimer(m_HPBarVisibleHandle, this, &ANPC::HideHPBar, 3.f, false);
 	}
 
 
@@ -97,6 +86,9 @@ float ANPC::TakeDamage(float _Damage, FDamageEvent const& _DamageEvent, AControl
 		return fDamage;
 	
 	pSkillCom->CancleCurSkill();
+
+	if (m_DamagedMontage != nullptr)
+		GetMesh()->GetAnimInstance()->Montage_Play(m_DamagedMontage, m_DamagedMontageSpeed);
 
 	// 3. PerceptionComponent에게 데미지 받은걸 보고하기
 	FVector InstigatorPos = _InstigatorActor ? _InstigatorActor->GetActorLocation() : GetActorLocation();
@@ -166,5 +158,15 @@ void ANPC::HideHPBar()
 {
 	if (m_WidgetCom)
 		m_WidgetCom->SetVisibility(false);
+}
+
+void ANPC::ShowHPBar()
+{
+	// 타이머 등록
+	// 3초 뒤에 위젯 렌더링 off
+	if (m_WidgetCom)
+		m_WidgetCom->SetVisibility(true);
+
+	GetWorldTimerManager().SetTimer(m_HPBarVisibleHandle, this, &ANPC::HideHPBar, 3.f, false);
 }
 

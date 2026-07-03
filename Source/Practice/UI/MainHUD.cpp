@@ -4,6 +4,7 @@
 #include "../UI/MainHUD.h"
 #include "../UI/PlayerBar.h"
 #include "../UI/InvenWidget.h"
+#include "../UI/BattingModeWidget.h"
 
 void UMainHUD::NativeOnInitialized()
 {

@@ -7,7 +7,7 @@
 #include "GenericTeamAgentInterface.h"
 #include "NPC.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnTakeDamage_NPC, float, CurHP, float, MaxHP);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTakeDamage_NPC);
 
 UCLASS()
 class PRACTICE_API ANPC : public ACharacter, public IGenericTeamAgentInterface
@@ -47,6 +47,7 @@ public:
 
 public:
 	void HideHPBar();
+	void ShowHPBar();
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "Info", meta = (DisplayName = "TeamID"))
@@ -68,4 +69,10 @@ protected:
 
 	// 몬스터가 데미지 받으면 호출해줄 델리게이트
 	FOnTakeDamage_NPC m_OnTakeDamage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Montage")
+	UAnimMontage* m_DamagedMontage;	// 스킬 모션
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Montage")
+	float m_DamagedMontageSpeed;		// 스킬 시전 시 캐릭터 회전 속도
 };

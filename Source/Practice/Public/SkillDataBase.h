@@ -15,12 +15,14 @@ enum class ESkillType : uint8
 
 };
 
-
 UCLASS()
 class PRACTICE_API USkillDataBase : public UPrimaryDataAsset // 일반 DataAsset과 다르게, 비동기 로딩 지원. 
 {
 	GENERATED_BODY()
 	
+public:
+	USkillDataBase();
+
 public:
 	// Character를 받지 않는 이유?
 	// 몬스터의 경우 꼭 Character의 Capsule Collider, 물리 연산 등을
@@ -44,6 +46,9 @@ public:
 	void OnFire(class APawn* _SkillUser, class USkillComponent* _SkillCom);
 	virtual void OnFire_Implementation(class APawn* _SkillUser, class USkillComponent* _SkillCom);
 
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Skill Logic")
+	void OnPitch(class APawn* _SkillUser, class APawn* _Target, class USkillComponent* _SkillCom);
+	virtual void OnPitch_Implementation(class APawn* _SkillUser, class APawn* _Target, class USkillComponent* _SkillCom);
 
 	// 에셋 매니저를 통한 식별자 등록
 	// 에셋 매니저가 이 에셋을 SkillData라는 카테고리로 인식하게 한다.
@@ -68,9 +73,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SkillAnim")
 	UAnimMontage* Montage;	// 스킬 모션
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SkillAnim")
+	float MontageSpeed;		// 스킬 시전 시 캐릭터 회전 속도
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|Projectile")
 	TSubclassOf<class AProjectileBase> ProjectileClass;		// 생성시킬 투사체의 UCLASS 정보를 가리킴
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|PitchProjectile")
+	TSubclassOf<class APitchProjectile> PitchProjectileClass;		// 생성시킬 투사체의 UCLASS 정보를 가리킴
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|Effect")
 	class UNiagaraSystem* HitEffect;		// 생성시킬 투사체의 UCLASS 정보를 가리킴
 

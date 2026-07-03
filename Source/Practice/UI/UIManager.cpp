@@ -5,6 +5,9 @@
 #include "../UI/MainHUD.h"
 #include "../UI/InvenWidget.h"
 #include "../UI/BattingModeWidget.h"
+#include "Components/CanvasPanelSlot.h"
+#include "Components/PanelWidget.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
 
 AUIManager::AUIManager()
 {
@@ -79,7 +82,7 @@ void AUIManager::ToggleInventory()
 	}
 }
 
-void AUIManager::ToggleBattingUI()
+/*void AUIManager::ToggleBattingUI()
 {
 	if (!m_MainHUD)
 		return;
@@ -98,4 +101,57 @@ void AUIManager::ToggleBattingUI()
 	{
 		pBModeWidget->SetVisibility(ESlateVisibility::Visible);
 	}
-}
+}*/
+
+/*void AUIManager::SetBattingUITransform(FVector WorldCenter, FVector BoxExtent)
+{
+	UBattingModeWidget* Widget = m_MainHUD->GetBattingModeWidget();
+	if (!Widget || Widget->GetVisibility() == ESlateVisibility::Collapsed)
+		return;
+
+	APlayerController* PC = GetOwningPlayerController();
+	if (!PC)
+		return;
+
+	UCanvasPanelSlot* Slot = Cast<UCanvasPanelSlot>(Widget->Slot);
+	if (!Slot)
+		return;
+
+	UWidget* Parent = Cast<UWidget>(Widget->GetParent());
+	if (!Parent)
+		return;
+
+	FGeometry ParentGeo = Parent->GetCachedGeometry();
+
+	FVector2D ScreenCenter;
+	if (!PC->ProjectWorldLocationToScreen(WorldCenter, ScreenCenter, false))
+		return;
+
+	FVector2D LocalCenter = ParentGeo.AbsoluteToLocal(ScreenCenter);
+
+	FVector2D ScreenTL;
+	FVector2D ScreenBR;
+
+	if (!PC->ProjectWorldLocationToScreen(
+		WorldCenter + FVector(0, -BoxExtent.Y, BoxExtent.Z),
+		ScreenTL,
+		false))
+		return;
+
+	if (!PC->ProjectWorldLocationToScreen(
+		WorldCenter + FVector(0, BoxExtent.Y, -BoxExtent.Z),
+		ScreenBR,
+		false))
+		return;
+
+	FVector2D LocalTL = ParentGeo.AbsoluteToLocal(ScreenTL);
+	FVector2D LocalBR = ParentGeo.AbsoluteToLocal(ScreenBR);
+
+	FVector2D Size(
+		FMath::Abs(LocalBR.X - LocalTL.X),
+		FMath::Abs(LocalBR.Y - LocalTL.Y)
+	);
+
+	Slot->SetPosition(LocalCenter);
+	Slot->SetSize(Size);
+}*/

@@ -25,7 +25,7 @@ protected:
 
 public:
 	UFUNCTION()
-	void UpdateHPBar(float _CurHP, float _MaxHP);
+	void UpdateHPBar(class UStatComponent* _StatCom);
 
 protected:
 	UPROPERTY(meta = (BindWidget))

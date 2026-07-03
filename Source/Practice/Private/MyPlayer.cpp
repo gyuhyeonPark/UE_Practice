@@ -8,6 +8,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/Boxcomponent.h"
 #include "Components/Widget.h"
+#include "Components/WidgetComponent.h"
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -18,6 +19,7 @@
 #include "../GlobalEnum.h"
 
 #include "../UI/UIManager.h"
+#include "../UI/BattingModeWidget.h"
 
 #include "../Item/Weapon/Weapon.h"
 
@@ -25,6 +27,7 @@
 #include "../Sounds/SoundManager.h"
 
 #include "../Actor/PoseCopy.h"
+#include "../Item/InventoryManager.h"
 
 // Sets default values
 AMyPlayer::AMyPlayer()
@@ -67,6 +70,13 @@ AMyPlayer::AMyPlayer()
 
 	// InputContainer 생성
 	m_InputContainer = CreateDefaultSubobject<UInputContainer>(TEXT("InputContainer"));
+
+	m_BattingModeWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("BattingModeWidget"));
+	m_BattingModeWidget->SetupAttachment(RootComponent);
+
+	// 컴포넌트 생성 — 이름이 에디터에 표시됨
+	StrikeZone = CreateDefaultSubobject<UBoxComponent>(TEXT("StrikeZone"));
+	StrikeZone->SetupAttachment(RootComponent);
 }
 
 // Called when the game starts or when spawned
@@ -126,6 +136,11 @@ void AMyPlayer::BeginPlay()
 
 	m_Camera->SetFieldOfView(m_NormalFOV);
 	m_SpringArm->TargetArmLength = m_NormalArmLength;
+
+	StrikeZone->SetHiddenInGame(false);        // 게임 중에도 표시
+	StrikeZone->SetVisibility(true);
+
+	m_BattingModeWidget->SetVisibility(false);
 }
 
 // Called every frame
@@ -181,7 +196,7 @@ void AMyPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	if (const UInputAction* pAction = m_InputContainer->FindIAByName(TEXT("IA_RightClick")))
 	{
 		pEIC->BindAction(pAction, ETriggerEvent::Started, this, &AMyPlayer::EnterBattingMode);
-		pEIC->BindAction(pAction, ETriggerEvent::Completed, this, &AMyPlayer::ExitBattingMode);	
+		pEIC->BindAction(pAction, ETriggerEvent::Triggered, this, &AMyPlayer::ExitBattingMode);	
 	}
 
 	// 스킬 컴포넌트가 담당하는 키 입력에 대해서는 해당 클래스에 바인딩 시킨다.
@@ -217,7 +232,6 @@ void AMyPlayer::LookAction(const FInputActionValue& _Value)
 {
 	if (m_CombatMode == ECombatMode::NORMAL)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("LookAction Call"));
 		// 입력 값
 		const FVector2D Input = _Value.Get<FVector2D>();
 
@@ -295,8 +309,13 @@ void AMyPlayer::InvenToggle(const FInputActionValue& _Value)
 void AMyPlayer::EnterBattingMode(const FInputActionValue& _Value)
 {
 	m_CombatMode = ECombatMode::BATTING;
-	AUIManager* pUIMgr = Cast<AUIManager>(Cast<APlayerController>(GetController())->GetHUD());
-	pUIMgr->ToggleBattingUI();
+
+	m_InputContainer->SetBattingMode(GetController());
+
+	m_SkillCom->SetSkillSlotBattingMode();
+
+	m_BattingModeWidget->SetVisibility(true);
+
 	// 카메라 설정 및 UI 생성
 	m_BZoomElapsed = 0.f;
 	m_BModePitch = GetController()->GetControlRotation().Pitch;
@@ -333,8 +352,13 @@ void AMyPlayer::EnterBattingMode(const FInputActionValue& _Value)
 void AMyPlayer::ExitBattingMode(const FInputActionValue& _Value)
 {
 	m_CombatMode = ECombatMode::NORMAL;
-	AUIManager* pUIMgr = Cast<AUIManager>(Cast<APlayerController>(GetController())->GetHUD());
-	pUIMgr->ToggleBattingUI();
+
+	m_InputContainer->SetNormalMode(GetController());
+
+	m_SkillCom->SetSkillSlotNormal();
+	m_SkillCom->EndSkill();
+
+	m_BattingModeWidget->SetVisibility(false);
 
 	// 카메라 설정 및 UI 생성 
 	m_BZoomElapsed = 0.f;
@@ -612,5 +636,75 @@ void AMyPlayer::InitPostProcessMaterial()
 
 		Blendable.Weight = 0.f;
 	}
+}
+
+bool AMyPlayer::Server_RequestPickupItem_Validate(AActor* _FieldItem)
+{
+	return true;
+}
+
+void AMyPlayer::Server_RequestPickupItem_Implementation(AActor* _FieldItem)
+{
+	// 아이템 유효성 체크
+	if (!IsValid(_FieldItem))
+		return;
+
+	// bPickup 체크
+	UClass* FieldItemClass = _FieldItem->GetClass();
+	FProperty* PickupProp = FieldItemClass->FindPropertyByName(TEXT("bPickup"));
+	FBoolProperty* BoolProp = CastField<FBoolProperty>(PickupProp);
+
+	bool bPickup = BoolProp->GetPropertyValue_InContainer(_FieldItem);
+
+	if (bPickup)
+		return;
+
+	// bPickup을 true로 변경 (다른 유저가 못 먹게)
+	BoolProp->SetPropertyValue_InContainer(_FieldItem, true);
+
+	UDataTable* pTable = nullptr;
+	FName RowName;
+	int32 Count = 0;
+
+	// _FieldItem으로부터 DataTable, RowName, Count를 가져온다.
+	FProperty* DataTableProp = FieldItemClass->FindPropertyByName(TEXT("DataTable"));
+	if (DataTableProp)
+	{
+		if (FObjectProperty* ObjProp = CastField<FObjectProperty>(DataTableProp))
+		{
+			pTable = Cast<UDataTable>(ObjProp->GetObjectPropertyValue_InContainer(_FieldItem));
+		}
+	}
+
+	FProperty* NameProp = FieldItemClass->FindPropertyByName(TEXT("RowName"));
+	if (NameProp)
+	{
+		if (FNameProperty* Prop = CastField<FNameProperty>(NameProp))
+		{
+			RowName = Prop->GetPropertyValue_InContainer(_FieldItem);
+		}
+	}
+
+	FProperty* IntProp = FieldItemClass->FindPropertyByName(TEXT("Count"));
+	if (IntProp)
+	{
+		if (FIntProperty* Prop = CastField<FIntProperty>(IntProp))
+		{
+			Count = Prop->GetPropertyValue_InContainer(_FieldItem);
+		}
+	}
+
+	// 클라이언트에 승인 RPC 보냄
+	Client_PickupSuccess(pTable, RowName, Count);
+
+	// 필드배치 아이템 삭제
+	_FieldItem->Destroy();
+}
+
+void AMyPlayer::Client_PickupSuccess_Implementation(UDataTable* _Table, FName _RowName, int32 _Count)
+{
+	// 인벤토리 매니저에 아이템을 추가한다.
+	if (UInventoryManager* pMgr = GetGameInstance()->GetSubsystem<UInventoryManager>())
+		pMgr->AddItem(_Table, _RowName);
 }
 

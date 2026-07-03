@@ -33,6 +33,9 @@ EBTNodeResult::Type UTask_UseSkill::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 	if (pSkillCom == nullptr)
 		return EBTNodeResult::Failed;
 
+	if (APawn* pTargetPawn = Cast<APawn>(OwnerComp.GetBlackboardComponent()->GetValueAsObject(m_Target.SelectedKeyName)))
+		pSkillCom->SetTargetPawn(pTargetPawn);
+
 	bool bSuccess = pSkillCom->TryExecuteSkill((int32)ESkillSlot::Skill_1);
 
 	if (bSuccess)

@@ -18,7 +18,9 @@ enum class ESkillSlot : uint8
 	Skill_1 UMETA(DisplayName = "Skill1"),
 	Skill_2 UMETA(DisplayName = "Skill2"),
 	Skill_3 UMETA(DisplayName = "Skill3"),
-	END UMETA(Hidden),
+	COMMON_SECTION_END UMETA(Hidden),
+	BATTING_SKILL UMETA(DisplayName = "BattingModeSkill"),
+	PLAYER_SECTION_END UMETA(Hidden)
 };
 
 USTRUCT(BlueprintType)
@@ -59,7 +61,7 @@ public:
 public:
 	// 키 입력 시 호출될 Delegate 함수
 	// SkillSlot의 멤버를 param으로 받을 예정
-	void UseSkill(int32 _SlotIndex);	// EIC Delegate Register
+	void UseSkill(int32 _SlotIndex, bool _IsBMode);	// EIC Delegate Register
 	bool TryExecuteSkill(int32 _SlotIndex);
 	void TryExecuteSkillVisual(int32 _SlotIdx, int32 _ComboIdx);
 	void EndSkill();
@@ -115,6 +117,11 @@ public:
 
 	void Fire();
 
+	void Pitch();
+
+public:
+	void SetWeapon(class AWeapon* _Weapon) { m_Weapon = _Weapon; }
+
 public:
 	// 서버 입장에서 다른 클라이언트들에게 스킬 모션 재생을 알려주는 멀티캐스트 함수
 	UFUNCTION(NetMulticast, Reliable)
@@ -132,11 +139,17 @@ public:
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_NotifyDamage(AActor* _Target, float _Damage, FVector _ImpactPoint, FVector _ImpactNormal);
 
+	void SetSkillSlotNormal() { m_SelectedSkillSlot = &m_SkillSlots; }
+
+	void SetTargetPawn(APawn* _Pawn) { m_TargetPawn = _Pawn; }
+
 protected:
 	// 스킬 장착 가능 슬롯 (Blueprint)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skills", meta = (TitleProperty = "SlotType"))
 	TArray<FSkillSlotInfo>	m_SkillSlots;
 	
+	TArray<FSkillSlotInfo>* m_SelectedSkillSlot;
+
 	// 지금 사용중인 스킬을 가리키는 포인터
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TSoftObjectPtr<class USkillDataBase> m_CurSkillData;
@@ -166,8 +179,15 @@ protected:
 	// 공격 판정 활성화 여부
 	bool m_HitBoxOn;
 
+	// 스킬 시전 타겟 Pawn
+	APawn* m_TargetPawn;
+
 public:
 	// 스킬 사용 후 종료 시 호출시켜줄 Delegate 들을 등록받을 수 있는 자료형
 	FOnSkillEnd m_SkillEndDelegate;
+
+protected:
+	// Weapon
+	class AWeapon* m_Weapon;
 
 };

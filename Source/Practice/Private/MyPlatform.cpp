@@ -26,6 +26,12 @@ void AMyPlatform::OnPlatformHit(UPrimitiveComponent* _HitComponent, AActor* _Oth
 	if (IsScored)
 		return;
 
+	APawn* pPawn = Cast<APawn>(_OtherActor);
+	if (pPawn == nullptr)
+		return;
+	if (pPawn->IsLocallyControlled() == false)
+		return;
+
 	ACharacter* pCharacter = Cast<ACharacter>(_OtherActor);
 
 	bool isCharacterOn = false;

@@ -3,6 +3,7 @@
 
 #include "SkillDataPlayer.h"
 #include "MyPlayer.h"
+#include "PlayerSkillComponent.h"
 
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -28,11 +29,11 @@ void USkillDataPlayer::OnExecuteSkill_Implementation(APawn* _SkillUser, USkillCo
 	}
 
 	// 몽타주 재생
-	if (pPlayer->GetMesh()->GetAnimInstance())
-		pPlayer->GetMesh()->GetAnimInstance()->Montage_Play(Montage, 1.f);
+	if (pPlayer->GetMesh()->GetAnimInstance() && Montage != nullptr)
+		pPlayer->GetMesh()->GetAnimInstance()->Montage_Play(Montage, MontageSpeed);
 
 	// 플레이어 상태 변경
-	if (_SkillUser->IsLocallyControlled()) 
+	if (_SkillUser->HasAuthority() || _SkillUser->IsLocallyControlled()) 
 	{
 		if (CanMove)
 		{

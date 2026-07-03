@@ -13,10 +13,8 @@ void UInputContainer::Init(AController* _Controller)
 {
 	m_mapIA.Empty();
 
-	for (const auto& IMC : m_Contexts)
-	{
-		AddInputAction(IMC);
-	}
+	AddInputAction(m_DefaultContext);
+	AddInputAction(m_BattingModeContext);
 
 	APlayerController* PC = Cast<APlayerController>(_Controller);
 
@@ -28,10 +26,7 @@ void UInputContainer::Init(AController* _Controller)
 	
 		pSubSys->ClearAllMappings();
 
-		for (const auto& IMC : m_Contexts)
-		{
-			pSubSys->AddMappingContext(IMC, 0);
-		}
+		pSubSys->AddMappingContext(m_DefaultContext, 0);
 	}
 }
 
@@ -61,5 +56,35 @@ void UInputContainer::AddInputAction(UInputMappingContext* _IMC)
 		{
 			m_mapIA.Add(ActionName, Mapping.Action);
 		}
+	}
+}
+
+void UInputContainer::SetBattingMode(AController* _Controller)
+{
+	APlayerController* PC = Cast<APlayerController>(_Controller);
+
+	if (PC)
+	{
+		ULocalPlayer* LocalPlayer = PC->GetLocalPlayer();
+		UEnhancedInputLocalPlayerSubsystem* pSubSys = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
+
+		pSubSys->AddMappingContext(m_BattingModeContext, 10);
+	}
+
+	
+
+}
+
+void UInputContainer::SetNormalMode(AController* _Controller)
+{
+	APlayerController* PC = Cast<APlayerController>(_Controller);
+
+	if (PC)
+	{
+		ULocalPlayer* LocalPlayer = PC->GetLocalPlayer();
+		UEnhancedInputLocalPlayerSubsystem* pSubSys = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
+		
+		pSubSys->RemoveMappingContext(m_BattingModeContext);
+/*		pSubSys->AddMappingContext(m_DefaultContext, 1);*/
 	}
 }

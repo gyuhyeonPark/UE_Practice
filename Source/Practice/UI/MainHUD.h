@@ -30,7 +30,7 @@ public:
 
 	class UInvenWidget* GetInventoryWidget() const { return InvenWidget; }
 
-	class UBattingModeWidget* GetBattingModeWidget() const { return BattingModeWidget; }
+/*	class UBattingModeWidget* GetBattingModeWidget() const { return BattingModeWidget; }*/
 
 protected:
 	UPROPERTY(meta = (BindWidget))
@@ -39,6 +39,6 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	class UInvenWidget* InvenWidget;
 
-	UPROPERTY(meta = (BindWidget))
-	class UBattingModeWidget* BattingModeWidget;
+/*	UPROPERTY(meta = (BindWidget))
+	class UBattingModeWidget* BattingModeWidget;*/
 };

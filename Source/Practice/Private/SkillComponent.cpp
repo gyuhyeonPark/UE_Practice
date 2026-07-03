@@ -20,6 +20,9 @@
 // 키즈맷
 #include "Kismet/GameplayStatics.h"
 
+#include "NPC.h"
+
+#include "../Item/Weapon/Weapon.h"
 
 // Sets default values for this component's properties
 USkillComponent::USkillComponent()
@@ -31,38 +34,13 @@ USkillComponent::USkillComponent()
 	SetIsReplicatedByDefault(true);
 
 	// Skill Slot을 Editor 상에 보이도록 미리 추가해둔다
-	for (int32 i = 0; i < (int32)ESkillSlot::END; ++i)
+	for (int32 i = 0; i < (int32)ESkillSlot::COMMON_SECTION_END; ++i)
 	{
 		m_SkillSlots.Add(FSkillSlotInfo{ (ESkillSlot)i, });
 	}
 
 	// ...
 }
-
-/*void USkillComponent::Bind(UEnhancedInputComponent* _EIC, UInputContainer* _InputContainer)
-{
-	if (_EIC == nullptr || _InputContainer == nullptr)
-		return;
-
-	for (int32 i = 0; i < m_SkillSlots.Num(); ++i)
-	{
-		// InputAction 찾기
-		FString SlotName = StaticEnum<ESkillSlot>()->GetNameStringByValue(i);
-
-		FString IAName = FString::Printf(TEXT("IA_%s"), *SlotName);
-
-		if (const UInputAction* pAction = _InputContainer->FindIAByName(IAName))
-		{
-			_EIC->BindAction(pAction, ETriggerEvent::Started, this, &USkillComponent::UseSkill, i);
-			if (IAName == TEXT("IA_RightClick"))
-			{
-				_EIC->BindAction(pAction, ETriggerEvent::Completed, this, &USkillComponent::UseSkill, i);
-			}
-		}
-			
-	}
-}*/
-
 
 // Called when the game starts
 void USkillComponent::BeginPlay()
@@ -73,6 +51,8 @@ void USkillComponent::BeginPlay()
 	LoadSkill();
 
 	m_SkeletalMeshCom = GetOwner()->FindComponentByClass<USkeletalMeshComponent>();
+
+	m_SelectedSkillSlot = &m_SkillSlots;
 }
 
 void USkillComponent::LoadSkill()
@@ -113,8 +93,10 @@ void USkillComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	// ...
 }
  
-void USkillComponent::UseSkill(int32 _SlotIndex)
+void USkillComponent::UseSkill(int32 _SlotIndex, bool _IsBMode)
 {
+	if (_IsBMode)
+		_SlotIndex -= ((uint32)ESkillSlot::COMMON_SECTION_END + 1);
 	if (TryExecuteSkill(_SlotIndex))
 	{
 		// 방장(서버) 쪽에서 호출되는 상황인지 확인
@@ -141,7 +123,7 @@ bool USkillComponent::TryExecuteSkill(int32 _SlotIndex)
 	}
 
 	// 스킬 슬롯이 비어있는지 체크
-	if (!IsValid(m_SkillSlots[_SlotIndex].SkillData.Get()))
+	if (!IsValid((*m_SelectedSkillSlot)[_SlotIndex].SkillData.Get()))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Skill Asset is not Equipped"));
 		return false;
@@ -151,14 +133,14 @@ bool USkillComponent::TryExecuteSkill(int32 _SlotIndex)
 	if (m_CurSkillData == nullptr)
 	{
 		// 스킬을 사용할 수 있는 상태인지 체크
-		if (m_SkillSlots[_SlotIndex].SkillData->CanUseSkill(Cast<APawn>(GetOwner()), this))
+		if ((*m_SelectedSkillSlot)[_SlotIndex].SkillData->CanUseSkill(Cast<APawn>(GetOwner()), this))
 		{
 			// 콤보 초기화
 			m_ComboWindow = false;
 			m_CurComboIdx = 0;
 
 			// 현재 사용중인 스킬로 등록
-			m_CurSkillData = m_SkillSlots[_SlotIndex].SkillData;
+			m_CurSkillData = (*m_SelectedSkillSlot)[_SlotIndex].SkillData;
 			// 스킬 실행
 			m_CurSkillData->OnExecuteSkill(Cast<APawn>(GetOwner()), this);
 
@@ -168,7 +150,7 @@ bool USkillComponent::TryExecuteSkill(int32 _SlotIndex)
 			return false;
 	}
 	// 이전에 사용한 스킬이 아직 안 끝났고, 새로 요청 들어온 스킬이 이전에 사용한 스킬과 동일하다.
-	else if (m_SkillSlots[_SlotIndex].SkillData == m_CurSkillData)
+	else if ((*m_SelectedSkillSlot)[_SlotIndex].SkillData == m_CurSkillData)
 	{
 		// 콤보 공격인지 체크
 		if (m_CurSkillData->CanCombo && m_ComboWindow)
@@ -236,14 +218,6 @@ void USkillComponent::CancleCurSkill()
 {
 	if (m_CurSkillData == nullptr)
 		return;
-
-	// 재생중인 스킬 몽타주 정지시키기.
-	USkeletalMeshComponent* pMesh = GetOwner()->GetComponentByClass<USkeletalMeshComponent>();
-	if (pMesh)
-	{
-		if (pMesh->GetAnimInstance())
-			pMesh->GetAnimInstance()->Montage_Stop(0.2f);
-	}
 	
 	EndSkill();		// 원래 Montage Notify -> AnimInstance 에서 호출되지만, 강제 호출
 }
@@ -271,7 +245,11 @@ USkillDataBase* USkillComponent::GetSkillData(ESkillSlot slotNum)
 
 void USkillComponent::HitBoxOn()
 {
-	m_PrevHitBoxSockPos = m_SkeletalMeshCom->GetSocketLocation(TEXT("HitBoxSock"));
+	if (m_Weapon)
+		m_PrevHitBoxSockPos = m_Weapon->GetHitSockPos();
+	else
+		m_PrevHitBoxSockPos = m_SkeletalMeshCom->GetSocketLocation(TEXT("HitBoxSock"));
+
 	m_HitBoxOn = true;
 }
 
@@ -287,7 +265,11 @@ void USkillComponent::HitBoxCheck()
 	// 콜리전 Trace Channel을 활용해 직접 체크해준다.
 
 	// 1. 현재 HitBoxSock의 위치를 알아야 한다.
-	FVector CurSockPos = m_SkeletalMeshCom->GetSocketLocation(TEXT("HitBoxSock"));
+	FVector CurSockPos;
+	if (m_Weapon)
+		CurSockPos = m_Weapon->GetHitSockPos();
+	else
+		CurSockPos = m_SkeletalMeshCom->GetSocketLocation(TEXT("HitBoxSock"));
 
 	// 충돌 결과를 받아낼 배열
 	TArray<FHitResult> HitResults;
@@ -353,6 +335,12 @@ void USkillComponent::HitBoxCheck()
 							, Result.ImpactNormal.Rotation());
 					}
 
+					// 타격을 한 대상이 NPC 타입이면, 머리 위에 체력이 잠깐 보이게 한다.
+					if (ANPC* pNPC = Cast<ANPC>(Result.GetActor()))
+					{
+						pNPC->ShowHPBar();
+					}
+
 					// 히트 했다!
 					UE_LOG(LogTemp, Warning, TEXT("!! Hit !!"));
 				}
@@ -373,6 +361,14 @@ void USkillComponent::Fire()
 		return;
 
 	m_CurSkillData->OnFire(Cast<APawn>(GetOwner()), this);
+}
+
+void USkillComponent::Pitch()
+{
+	if (!m_CurSkillData || m_CurSkillData->SkillType != ESkillType::PROJECTILE)
+		return;
+
+	m_CurSkillData->OnPitch(Cast<APawn>(GetOwner()), m_TargetPawn, this);
 }
 
 void USkillComponent::Multicast_SkillExecute_Implementation(int32 _Slot, int32 _ComboIdx)

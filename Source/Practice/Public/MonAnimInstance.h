@@ -22,6 +22,9 @@ public:
 	void AnimNotify_SkillEnd();
 
 	UFUNCTION()
+	void AnimNotify_Pitch();
+
+	UFUNCTION()
 	void AnimNotify_Fire();
 
 protected:

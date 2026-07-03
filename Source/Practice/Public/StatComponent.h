@@ -6,6 +6,26 @@
 #include "Components/ActorComponent.h"
 #include "StatComponent.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTakeDamage_Stat, class UStatComponent*, StatCom);
+
+USTRUCT(BlueprintType)
+struct FStatInfo
+{
+	GENERATED_BODY()
+
+public:
+	bool operator==(const FName& _Name) const
+	{
+		return StatName == _Name;
+	}
+
+public:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FName StatName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Value;
+};
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class PRACTICE_API UStatComponent : public UActorComponent
@@ -25,24 +45,12 @@ protected:
 
 	virtual void InitStat();
 
-public:
-	void AddStat(FName _StatName, float _Amound) { m_Stats.Add(_StatName, _Amound); };
-	float GetStat(FName _StatName)
-	{
-		if (float* pData = m_Stats.Find(_StatName))
-		{
-			return *pData;
-		}
-		else
-			return 0.f;
-	}
-	void SetStat(FName _StatName, float _Value)
-	{
-		if (float* pData = m_Stats.Find(_StatName))
-		{
-			*pData = _Value;
-		}
-	}
+	// 리플리케이트할 변수 등록
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	// 실제 리플리케이트가 발생했을 때 후속으로 호출되는 콜백 함수
+	UFUNCTION()
+	void OnRep();
 
 protected:
 	void InitStatFromStruct(UScriptStruct* _InStruct, const void* _StructPtr);
@@ -53,12 +61,18 @@ protected:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& _Event) override;
 #endif
 
+public:
+	void AddStat(FName _StatName, float _Amount);
+	float GetStat(FName _StatName);
+	void SetStat(FName _StatName, float _Value);
+
 protected:
 	// 행 이름
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat")
 	FName m_RowName;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
-	TMap<FName, float> m_Stats;
+	UPROPERTY(ReplicatedUsing = OnRep, VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
+	TArray<FStatInfo> m_Stats;
 
+	FOnTakeDamage_Stat m_OnTakeDamage;
 };

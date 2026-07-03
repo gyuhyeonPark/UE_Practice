@@ -16,8 +16,14 @@ void UMonAnimInstance::AnimNotify_OnLandingStart()
 
 void UMonAnimInstance::AnimNotify_SkillEnd()
 {
-	if (m_Character->IsLocallyControlled())
+	if (m_Character->HasAuthority() || m_Character->IsLocallyControlled())
 		m_Character->GetSkillComponent()->EndSkill();
+}
+
+void UMonAnimInstance::AnimNotify_Pitch()
+{
+	if (m_Character->IsLocallyControlled())
+		m_Character->GetSkillComponent()->Pitch();
 }
 
 void UMonAnimInstance::AnimNotify_Fire()

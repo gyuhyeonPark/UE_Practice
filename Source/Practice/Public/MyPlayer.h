@@ -122,6 +122,16 @@ public:
 public:
 	void InitPostProcessMaterial();
 
+	// Item PickUp RPC
+	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable)
+	void Server_RequestPickupItem(AActor* _FieldItem);
+
+	UFUNCTION(Client, Reliable, BlueprintCallable)
+	void Client_PickupSuccess(UDataTable* _Table, FName _RowName, int32 _Count);
+
+	class UBoxComponent* GetStrikeZone() { return StrikeZone; }
+	class UWidgetComponent* GetBattingModeWidget() { return m_BattingModeWidget; }
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (DisplayName = "SpringArm"))
 	class USpringArmComponent* m_SpringArm;
@@ -138,6 +148,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"), Instanced)
 	class UInputContainer* m_InputContainer;
 
+	// C++ 헤더에 선언
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pitch")
 	int32 m_MaxPitch;
 
@@ -208,11 +219,16 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BattingMode")
 	FVector m_BModeCamOffset;
-	// Zoom 
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (DisplayName = "BattingModeWidget"))
+	class UWidgetComponent* m_BattingModeWidget;
 
 protected:
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<class AWeapon> weaponClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
+	class UBoxComponent* StrikeZone;
 
 private:
 	bool m_JumpLock;

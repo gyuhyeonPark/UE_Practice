@@ -19,7 +19,9 @@ public class Practice : ModuleRules
 			"GameplayTasks",
 			"UMG",
 			"InterchangeCore",        // 추가
-			"InterchangeFactoryNodes" // 추가
+			"InterchangeFactoryNodes", // 추가
+			"OnlineSubsystem",
+			"OnlineSubsystemUtils"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });

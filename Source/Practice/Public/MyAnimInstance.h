@@ -23,7 +23,13 @@ public:
 	void AnimNotify_SkillEnd();
 
 	UFUNCTION()
+	void AnimNotify_BatImpact();		// BatMode -> LeftClick시 커서 위치에 특정 행동을 하도록 한다...?
+
+	UFUNCTION()
 	void AnimNotify_Fire();
+
+	UFUNCTION()
+	void AnimNotify_ChargeEnd();
 
 protected:
 	virtual void NativeInitializeAnimation() override;
@@ -42,6 +48,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = "Movement")
 	bool	m_IsBattingMode;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = "Movement")
+	bool	m_IsBatting;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = "Movement")
 	float	m_VerticalSpeed;

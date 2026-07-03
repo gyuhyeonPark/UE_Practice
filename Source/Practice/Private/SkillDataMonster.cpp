@@ -25,7 +25,7 @@ void USkillDataMonster::OnExecuteSkill_Implementation(APawn* _SkillUser, USkillC
 
 	// 몽타주 재생
 	if (pMonster->GetMesh()->GetAnimInstance())
-		pMonster->GetMesh()->GetAnimInstance()->Montage_Play(Montage, 1.f);
+		pMonster->GetMesh()->GetAnimInstance()->Montage_Play(Montage, MontageSpeed);
 
 	// 몬스터 상태 변경
 
