@@ -29,6 +29,9 @@
 #include "../Actor/PoseCopy.h"
 #include "../Item/InventoryManager.h"
 
+#include "PaperSpriteComponent.h"
+
+
 // Sets default values
 AMyPlayer::AMyPlayer()
 {
@@ -59,6 +62,10 @@ AMyPlayer::AMyPlayer()
 	// SkillComponent 추가하기
 	m_SkillCom = CreateDefaultSubobject<UPlayerSkillComponent>(TEXT("PlayerSkillComponent"));
 	m_StatCom = CreateDefaultSubobject<UPlayerStatComponent>(TEXT("StatComponent"));
+
+	m_InteractionCom = CreateDefaultSubobject<UInteractionComponent>(TEXT("InteractionComponent"));
+	m_CurrentUI = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("DisplayingUI"));
+	m_CurrentUI->SetupAttachment(RootComponent);
 
 	// 캡슐 컴포넌트 절반길이 설정
 	GetCapsuleComponent()->SetCapsuleHalfHeight(95.f);
@@ -195,8 +202,7 @@ void AMyPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	// Batting Mode 바인딩
 	if (const UInputAction* pAction = m_InputContainer->FindIAByName(TEXT("IA_RightClick")))
 	{
-		pEIC->BindAction(pAction, ETriggerEvent::Started, this, &AMyPlayer::EnterBattingMode);
-		pEIC->BindAction(pAction, ETriggerEvent::Triggered, this, &AMyPlayer::ExitBattingMode);	
+		pEIC->BindAction(pAction, ETriggerEvent::Triggered, this, &AMyPlayer::RightClickInteraction);
 	}
 
 	// 스킬 컴포넌트가 담당하는 키 입력에 대해서는 해당 클래스에 바인딩 시킨다.
@@ -306,9 +312,15 @@ void AMyPlayer::InvenToggle(const FInputActionValue& _Value)
 	pUIMgr->ToggleInventory();
 }
 
-void AMyPlayer::EnterBattingMode(const FInputActionValue& _Value)
+void AMyPlayer::BattingModeToggle()
+{
+	m_CombatMode == ECombatMode::NORMAL ? EnterBattingMode() : ExitBattingMode();
+}
+
+void AMyPlayer::EnterBattingMode()
 {
 	m_CombatMode = ECombatMode::BATTING;
+	SetMoveScale(0.f);
 
 	m_InputContainer->SetBattingMode(GetController());
 
@@ -349,13 +361,21 @@ void AMyPlayer::EnterBattingMode(const FInputActionValue& _Value)
 	}
 }
 
-void AMyPlayer::ExitBattingMode(const FInputActionValue& _Value)
+void AMyPlayer::ExitBattingMode()
 {
+	if (m_CombatMode == ECombatMode::NORMAL)
+		return;
+
 	m_CombatMode = ECombatMode::NORMAL;
+	SetMoveScale(1.f);
 
 	m_InputContainer->SetNormalMode(GetController());
 
+	// 재생 중인 몽타주가 있다면 STOP. Idle로 돌아가는 걸 기대.
+	GetMesh()->GetAnimInstance()->StopAllMontages(1.5f);
+
 	m_SkillCom->SetSkillSlotNormal();
+	
 	m_SkillCom->EndSkill();
 
 	m_BattingModeWidget->SetVisibility(false);
@@ -369,6 +389,11 @@ void AMyPlayer::ExitBattingMode(const FInputActionValue& _Value)
 		this,
 		&AMyPlayer::BattingModeUnzoom,
 		m_BZoomTick, true);
+}
+
+void AMyPlayer::RightClickInteraction(const FInputActionValue& _Value)
+{
+	ToggleInteraction(EInteractionType::RClick);
 }
 
 ETeamAttitude::Type AMyPlayer::GetTeamAttitudeTowards(const AActor& Other) const
@@ -397,12 +422,22 @@ USkillComponent* AMyPlayer::GetSkillComponent()
 	return Cast<USkillComponent>(m_SkillCom);
 }
 
+void AMyPlayer::SetInteractionUISprite(UPaperSprite* _Sprite)
+{
+	m_CurrentUI->SetSprite(_Sprite);
+}
+
 void AMyPlayer::ChangePlayerState(EPlayerState _NextState)
 {
 	if (m_PlayerState == _NextState)
 		return;
 	if (m_PlayerState != EPlayerState::JUMP)
 		m_PlayerState = _NextState;
+}
+
+void AMyPlayer::ToggleInteraction(EInteractionType _Type)
+{
+	m_InteractionCom->ExecuteInteract(_Type, this);
 }
 
 float AMyPlayer::TakeDamage(float _Damage, FDamageEvent const& _DamageEvent, AController* _InstigatorController, AActor* _InstigatorActor)
@@ -612,7 +647,21 @@ void AMyPlayer::BattingModeUnzoom()
 	}
 }
 
+void AMyPlayer::BatImpact()
+{
+	if (UBattingModeWidget* pBModeWidget = Cast<UBattingModeWidget>(m_BattingModeWidget->GetUserWidgetObject()))
+	{
+		pBModeWidget->Impact();
+	}
+}
 
+void AMyPlayer::SendChargeElapsed(float _Elapsed) const
+{
+	if (UBattingModeWidget* pBModeWidget = Cast<UBattingModeWidget>(m_BattingModeWidget->GetUserWidgetObject()))
+	{
+		pBModeWidget->SetChargeElapsed(_Elapsed);
+	}
+}
 
 void AMyPlayer::InitPostProcessMaterial()
 {

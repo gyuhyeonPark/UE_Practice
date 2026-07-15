@@ -6,6 +6,7 @@
 #include "GenericTeamAgentInterface.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "../Interaction/InteractionComponent.h"
 
 #include "MyPlayer.generated.h"
 
@@ -55,21 +56,14 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-public:
+protected:
 	void MoveAction(const struct FInputActionValue& _Value);
 	void JumpAction(const struct FInputActionValue& _Value);
 	void LookAction(const struct FInputActionValue& _Value);
 	void SprintTriggered(const struct FInputActionValue& _Value);
 	void SprintCompleted(const struct FInputActionValue& _Value);
 	void InvenToggle(const struct FInputActionValue& _Value);
-	void EnterBattingMode(const struct FInputActionValue& _Value);
-	void ExitBattingMode(const struct FInputActionValue& _Value);	
-
-	void JumpLock()
-	{
-		m_JumpLock = true;
-		m_JumpCurLockTime = 0.f;
-	}
+	void RightClickInteraction(const struct FInputActionValue& _Value);
 
 	// Generic Team Agent Interface abstract functions
 public:
@@ -88,6 +82,12 @@ public:
 
 	class USkillComponent* GetSkillComponent();
 
+	class UInteractionComponent* GetInteractionComponent() { return m_InteractionCom; }
+
+	class UPaperSpriteComponent* GetCurrentUISpriteCom() { return m_CurrentUI; }
+
+	void SetInteractionUISprite(class UPaperSprite* _Sprite); 
+
 	void SetMoveScale(float _Scale)
 	{
 		m_MoveScale = _Scale;
@@ -98,6 +98,17 @@ public:
 
 	UFUNCTION()
 	void ChangePlayerState(EPlayerState _NextState);
+
+	void JumpLock()
+	{
+		m_JumpLock = true;
+		m_JumpCurLockTime = 0.f;
+	}
+
+	void BattingModeToggle();
+	void ToggleInteraction(EInteractionType _Type);
+	void EnterBattingMode();
+	void ExitBattingMode();
 
 	// Take Damage
 public:
@@ -118,6 +129,9 @@ public:
 
 	void BattingModeZoom();
 	void BattingModeUnzoom();
+
+	void BatImpact();
+	void SendChargeElapsed(float _Elapsed) const;
 
 public:
 	void InitPostProcessMaterial();
@@ -229,6 +243,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
 	class UBoxComponent* StrikeZone;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (DisplayName = "InteractionComponent"))
+	class UInteractionComponent* m_InteractionCom;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (DisplayName = "DisplayingUI"))
+	class UPaperSpriteComponent* m_CurrentUI;
 
 private:
 	bool m_JumpLock;

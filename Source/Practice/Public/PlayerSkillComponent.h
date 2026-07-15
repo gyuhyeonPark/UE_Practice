@@ -37,5 +37,6 @@ protected:
 
 	float m_ChargeElapsed;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BattingMontage")
 	UAnimMontage* m_BattingMontage;
 };

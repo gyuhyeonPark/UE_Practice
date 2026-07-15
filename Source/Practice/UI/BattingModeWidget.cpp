@@ -12,6 +12,7 @@
 #include "Blueprint/WidgetTree.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/Boxcomponent.h"
+#include "Components/CanvasPanelSlot.h"
 
 void UBattingModeWidget::NativeOnInitialized()
 {
@@ -35,11 +36,40 @@ void UBattingModeWidget::NativeConstruct()
 
 	// Aim 중심점을 시작점으로 저장
 	m_CenterPos = ZoneSize * 0.5f;
+
+	m_Elapsed = 0.f;
+	m_Duration = 0.f;
+
+	UCanvasPanelSlot* WarningSlot = Cast<UCanvasPanelSlot>(m_WarningImg->Slot);
+	m_StartWarningSize = WarningSlot->GetSize();
 }
 
 void UBattingModeWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
-	Super::NativeTick(MyGeometry, InDeltaTime); // ← Super 호출 빠졌는지 확인
+	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	m_Elapsed += InDeltaTime;
+
+	if (m_Elapsed <= m_Duration)
+	{
+		const float Alpha = FMath::Clamp(m_Elapsed / m_Duration, 0.f, 1.f);
+
+		UCanvasPanelSlot* WarningSlot = Cast<UCanvasPanelSlot>(m_WarningImg->Slot);
+		UCanvasPanelSlot* AimSlot = Cast<UCanvasPanelSlot>(m_AimImg->Slot);
+
+		if (WarningSlot && AimSlot)
+		{
+			FVector2D WarningSize = WarningSlot->GetSize();
+			FVector2D AimSize = AimSlot->GetSize();
+
+			FVector2D NewSize = FMath::Lerp(
+				m_StartWarningSize,
+				AimSize,
+				Alpha);
+
+			WarningSlot->SetSize(NewSize);
+		}
+	}
 }
 
 void UBattingModeWidget::UpdateAimPos_Alt(float _XPos, float _YPos)
@@ -137,40 +167,90 @@ void UBattingModeWidget::InitWarningPos_Alt(FVector _WorldPosition)
 	m_WarningImg->SetVisibility(ESlateVisibility::Visible);
 }
 
-FVector3d UBattingModeWidget::GetImpactWorldPos()
+void UBattingModeWidget::SetWarningDelegate(APitchProjectile* _Projectile, float _Duration)
 {
-	if (AMyPlayer* pPlayer = Cast<AMyPlayer>(GetOwningPlayerPawn()))
+	m_CurrentProjectile = _Projectile;
+
+	_Projectile->m_InitWarningPos.AddDynamic(this, &UBattingModeWidget::InitWarningPos_Alt);
+
+	m_Elapsed = 0.f;
+	m_Duration = _Duration;
+
+	UCanvasPanelSlot* WarningSlot = Cast<UCanvasPanelSlot>(m_WarningImg->Slot);
+	WarningSlot->SetSize(m_StartWarningSize);
+}
+
+void UBattingModeWidget::ChangeProjectileAttitude()
+{
+	m_CurrentProjectile->ChangeAttitude();
+	m_CurrentProjectile = nullptr;
+}
+
+void UBattingModeWidget::FailedParrying()
+{
+	// 대응되어 있는 투사체를 폭발 시키고, Deregister
+	m_CurrentProjectile->Explode();
+}
+
+void UBattingModeWidget::Impact()
+{
+	// 1. Timing
+	const float MAX_TIMING_ERROR = 0.15f;		// 15ms
+
+	// 예외 상황 : 만약 너무 일찍 휘둘렀다면, 캐릭터의 스턴이라던가 필요할 듯?
+	float timeDiff = m_Duration - m_Elapsed;
+	if (timeDiff > MAX_TIMING_ERROR)
 	{
-		if (APlayerController* PC = Cast<APlayerController>(pPlayer->GetController()))
+		if (AMyPlayer* pPlayer = Cast<AMyPlayer>(GetOwningPlayerPawn()))
 		{
-			int32 ViewX, ViewY;
-			PC->GetViewportSize(ViewX, ViewY);
-
-			FVector2D curAimPos = m_AimImg->RenderTransform.Translation;
-			float ScreenX = ViewX * 0.5f + curAimPos.X;
-			float ScreenY = ViewY * 0.5f + curAimPos.Y;
-
-			FVector RayOrigin, RayDir;
-			PC->DeprojectScreenPositionToWorld(ScreenX, ScreenY, RayOrigin, RayDir);
-
-			// 플레이어 앞 타격 평면 정의
-			FVector PlayerPos = pPlayer->GetActorLocation();
-			FVector PlaneCenter = PlayerPos + pPlayer->GetActorForwardVector() * 100.f;
-			FVector PlaneNormal = -pPlayer->GetActorForwardVector();
-
-			// Ray와 평면 교차점 계산
-			float T = FVector::DotProduct(PlaneCenter - RayOrigin, PlaneNormal)
-				/ FVector::DotProduct(RayDir, PlaneNormal);
-
-			FVector ImpactPos = RayOrigin + RayDir * T;
-			return FVector3d(ImpactPos);
+			// Exit하면 연출이 부자연스럽다... 뭔가 방법이 필요함.
+			pPlayer->ToggleInteraction(EInteractionType::RClick);
+			return;
 		}
 	}
 
-	return FVector3d::ZeroVector;
+	float TimingScore = FMath::Clamp(1.f - FMath::Abs(timeDiff) / MAX_TIMING_ERROR, 0.f, 1.f);
+
+	// 2. Position - AimPos와 벗어났는가 가 실패기준임.
+	UCanvasPanelSlot* AimSlot = Cast<UCanvasPanelSlot>(m_AimImg->Slot);
+	const float MAX_POS_ERROR = AimSlot->GetSize().X;
+
+	float diffPos = (m_WarningImg->GetRenderTransform().Translation - m_AimImg->GetRenderTransform().Translation).Length();
+	float PositionScore = FMath::Clamp(1.f - diffPos / MAX_POS_ERROR, 0.f, 1.f);
+
+
+	// 3. Charge
+	const float MAX_CHARGE_DURATION = 2.f;
+	float ChargeScore = FMath::Clamp(m_ChargeElapsed / MAX_CHARGE_DURATION, 0.f, 1.f);
+
+	// 최소 차징 보정 (0.5 ~ 1.2배)
+	float ChargeMultiplier = FMath::Lerp(0.5f, 1.2f, ChargeScore);
+
+	float FinalScore =
+		TimingScore *
+		PositionScore *
+		ChargeMultiplier;
+
+	UE_LOG(LogTemp, Warning, TEXT("Score TIMING : %f"), TimingScore);
+	UE_LOG(LogTemp, Warning, TEXT("Score POS : %f"), PositionScore);
+	UE_LOG(LogTemp, Warning, TEXT("Score CHARGE : %f"), ChargeScore);
+
+
+	// FinalScore에 따라 행동을 결정하기.
+			// 해당 Score가 0이고,  패링 실패, 투사체가 폭발해야 함
+	if (FinalScore <= 0.f)
+	{
+		FailedParrying();
+	}
+	else
+	{
+		ChangeProjectileAttitude();
+	}
+
+	if (AMyPlayer* pPlayer = Cast<AMyPlayer>(GetOwningPlayerPawn()))
+	{
+		// Exit하면 연출이 부자연스럽다... 뭔가 방법이 필요함.
+		pPlayer->ExitBattingMode();
+	}
 }
 
-void UBattingModeWidget::SetWarningDelegate(APitchProjectile* _Projectile)
-{
-	_Projectile->m_InitWarningPos.AddDynamic(this, &UBattingModeWidget::InitWarningPos_Alt);
-}

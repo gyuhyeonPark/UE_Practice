@@ -26,7 +26,7 @@ struct FPitchData
 	EPitchType Type = EPitchType::FASTBALL;
 
 	UPROPERTY(EditAnywhere)
-	float Speed = 1000.f; // cm/s
+	float Duration = 1000.f; // cm/s
 
 	UPROPERTY(EditAnywhere)
 	FVector BreakForce = FVector::ZeroVector; // 매 프레임 누적할 힘 방향
@@ -55,6 +55,18 @@ public:
 public:
 	void InitProjectile(APawn* _User, APawn* _Target, class USkillDataBase* _Skill);
 
+	void EnterBattingMode();
+	void ExitBattingMode();
+
+	void BroadCastWarningPosFunc();
+
+	void ChangeAttitude();
+
+	void Explode();
+
+protected:
+	void InitBeforeShoot();
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PitchData")
 	FPitchData m_PitchData;
@@ -73,14 +85,28 @@ protected:
 
 	class UBoxComponent* m_StrikeZone;
 
-	FVector m_PrevLocation;
-
-	FVector m_Destination;
+	FVector m_Destination;			// 공이 도착할 실제 월드 상 위치.
+	FVector m_WarningSignLocation;	// 경고 표시가 활성화 되는 위치.
 
 	class UBallWarningWidget* m_WarningWidget;
 
 	UPROPERTY(EditAnywhere, Category = "UI")
 	TSubclassOf<class UBallWarningWidget> m_WidgetClass;
+
+	float m_Elapsed;
+
+	FVector m_StartLocation;
+	FVector m_DirVec;
+	float m_Distance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WarningSigneClass")
+	TSubclassOf<class AWarningSign> WarningSigneClass;		// 생성시킬 투사체의 UCLASS 정보를 가리킴
+
+	class AWarningSign* m_WarningSign;
+
+	// 터질 때 생성할 폭발 콜리전 액터
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Explosion")
+	TSubclassOf<class AExplosion> ExplosionClass;		// 생성시킬 투사체의 UCLASS 정보를 가리킴
 
 public:
 	FInitWarningPos m_InitWarningPos;

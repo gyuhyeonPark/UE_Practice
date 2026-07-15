@@ -37,11 +37,14 @@ protected:
 	void InitWarningPos_Alt(FVector _WorldPosition);
 
 public:
-	// 타격 시, 2차원 상의 UI 타격 Vector2D를 월드 위치로 변환하여 반환해주는 함수. 
-	FVector3d GetImpactWorldPos();
+	void SetWarningDelegate(class APitchProjectile* _Projectile, float _Duration);
 
+	void SetChargeElapsed(float _Elapsed) { m_ChargeElapsed = _Elapsed; }
+
+	void ChangeProjectileAttitude();
+	void FailedParrying();
 public:
-	void SetWarningDelegate(class APitchProjectile* _Projectile);
+	void Impact();
 
 protected:
 	UPROPERTY(meta = (BindWidget))
@@ -60,4 +63,14 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	class UImage* m_WarningImg;
+
+protected:
+	float m_Elapsed;
+	float m_Duration;	// 투사체의 도착 예정 시간 정보
+
+	FVector2D m_StartWarningSize;
+
+	float m_ChargeElapsed;
+
+	class APitchProjectile* m_CurrentProjectile;
 };

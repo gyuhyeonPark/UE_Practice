@@ -21,7 +21,8 @@ public class Practice : ModuleRules
 			"InterchangeCore",        // 추가
 			"InterchangeFactoryNodes", // 추가
 			"OnlineSubsystem",
-			"OnlineSubsystemUtils"
+			"OnlineSubsystemUtils",
+			"Paper2D"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });

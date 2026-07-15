@@ -11,6 +11,9 @@
 #include "../UI/UIManager.h"
 #include "../UI/MainHUD.h"
 
+#include "../Actor/WarningSign.h"
+#include "../Actor/Explosion.h"
+
 // Sets default values
 APitchProjectile::APitchProjectile()
 {
@@ -25,31 +28,115 @@ void APitchProjectile::BeginPlay()
 {
 	Super::BeginPlay();
 
-	m_PrevLocation = GetActorLocation();
-
-
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();
-
-/*	m_WarningWidget = CreateWidget<UBallWarningWidget>(PC, m_WidgetClass);
-
-	if (m_WarningWidget && PC)
-	{
-		m_WarningWidget->AddToViewport();
-		m_WarningWidget->SetWidgetPos(m_Destination);
-	}*/
 
 	if (PC == nullptr)
 		return;
 
-	if (AUIManager* pUIMgr = Cast<AUIManager>(PC->GetHUD()))
+	// 1. WarningSign 생성 및 m_Destination 설정
+	FTransform Trans;
+	Trans.SetLocation(m_WarningSignLocation);
+	m_WarningSign = m_SkillUser->GetWorld()->SpawnActor<AWarningSign>(
+		WarningSigneClass,
+		Trans,
+		FActorSpawnParameters{}
+	);
+
+	m_WarningSign->RegisterProjectile(this);
+
+	InitBeforeShoot();
+}
+
+// Called every frame
+void APitchProjectile::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	m_Elapsed += DeltaTime;
+
+	m_WarningSign->SetPercent(m_Elapsed, m_PitchData.Duration);
+
+	if (m_Elapsed >= m_PitchData.Duration)
 	{
-		if (AMyPlayer* pPlayer = Cast<AMyPlayer>(m_Target))
+		if (AMyPlayer* pTargetPlayer = Cast<AMyPlayer>(m_Target))
 		{
-			if (UBattingModeWidget* pBModeWidget = Cast<UBattingModeWidget>(pPlayer->GetBattingModeWidget()->GetUserWidgetObject()))
-				pBModeWidget->SetWarningDelegate(this);
+			m_WarningSign->CancleInteract(pTargetPlayer);		// 상호작용 중일 때 Cancle.
+		}
+		Explode();
+
+		return;
+	}
+	
+	FVector nextPos = m_StartLocation + m_DirVec * m_Elapsed / m_PitchData.Duration * m_Distance;
+
+	SetActorLocation(nextPos);
+}
+
+void APitchProjectile::InitProjectile(APawn* _User, APawn* _Target, USkillDataBase* _Skill)
+{
+	m_SkillUser = _User;
+	m_Target = _Target;
+	m_Skill = _Skill;
+
+	m_Destination = m_WarningSignLocation = m_Target->GetActorLocation();
+}
+
+void APitchProjectile::EnterBattingMode()
+{
+	// 목적지를 재설정하되, 남은 시간은 동일해야 한다.
+	// 아이디어 : m_StartLocation을 현재 위치로 설정.
+	// m_Duration을 m_Duration - m_Elapsed로 설정.
+	// m_Elapsed를 0.f로 설정.
+	m_PitchData.Duration -= m_Elapsed;
+
+	if (AMyPlayer* pPlayer = Cast<AMyPlayer>(m_Target))
+	{
+		if (UBattingModeWidget* pBModeWidget = Cast<UBattingModeWidget>(pPlayer->GetBattingModeWidget()->GetUserWidgetObject()))
+		{
+			// 1. 도착 지점 설정
+			m_StrikeZone = pPlayer->GetStrikeZone();
+
+			// 해당 스트라이크 존 내부 중 랜덤으로 목적지를 설정
+			FVector pZoneCenterPos = m_StrikeZone->GetComponentLocation();
+			FVector pZoneScale = m_StrikeZone->GetScaledBoxExtent();
+
+			float RandY = FMath::RandRange(pZoneCenterPos.Y - pZoneScale.Y, pZoneCenterPos.Y + pZoneScale.Y);
+			float RandZ = FMath::RandRange(pZoneCenterPos.Z - pZoneScale.Z, pZoneCenterPos.Z + pZoneScale.Z);
+
+			m_Destination = FVector(pZoneCenterPos.X, RandY, RandZ);
+
+			InitBeforeShoot();
+
+			// 2. 도착 지점 표시 Delegate 등록
+			pBModeWidget->SetWarningDelegate(this, m_PitchData.Duration);
+
+			// 3. 도착 시간 정보를 BattingMode에게 전달.
+
 		}
 	}
 
+	GetWorld()->GetTimerManager().SetTimerForNextTick(
+		this,
+		&APitchProjectile::BroadCastWarningPosFunc);
+
+	// Warning Sign은 안보이게 처리.
+	m_WarningSign->SetActorHiddenInGame(true);
+}
+
+void APitchProjectile::ExitBattingMode()
+{
+	m_PitchData.Duration -= m_Elapsed;
+	m_Destination = m_WarningSignLocation;
+
+	InitBeforeShoot();
+
+	// Warning Sign은 다시 보이게 처리.
+	m_WarningSign->SetActorHiddenInGame(false);
+}
+
+void APitchProjectile::BroadCastWarningPosFunc()
+{
+	// 2. 설정된 m_Destination 기반 투사체 관련 정보 설정
 	if (m_InitWarningPos.IsBound())
 	{
 		FVector TargetPos;
@@ -61,50 +148,49 @@ void APitchProjectile::BeginPlay()
 	}
 }
 
-// Called every frame
-void APitchProjectile::Tick(float DeltaTime)
+void APitchProjectile::ChangeAttitude()
 {
-	Super::Tick(DeltaTime);
+	// 패링되었을 때의 로직
+	// 플레이어 - 적군 1대1 대응 상정
 
-	FVector dirVec = m_Destination - GetActorLocation();
-	dirVec.Normalize();
+	// SkillUser와 Target 반전
+	InitProjectile(m_Target, m_SkillUser, nullptr);
 
-	FVector nextPos = m_PrevLocation + dirVec * m_PitchData.Speed * DeltaTime;
-
-	SetActorLocation(nextPos);
-
-	m_PrevLocation = nextPos;
-
-	FVector prevDirVec = m_Destination - m_PrevLocation;
-	prevDirVec.Normalize();
-
-	if (dirVec.Dot(prevDirVec) < 0.f)
-	{
-/*		m_WarningWidget->RemoveFromParent();
-		m_WarningWidget = nullptr;*/
-		Destroy();
-	}
+	// 멤버 초기화
+	InitBeforeShoot();
 }
 
-void APitchProjectile::InitProjectile(APawn* _User, APawn* _Target, USkillDataBase* _Skill)
+void APitchProjectile::Explode()
 {
-	m_SkillUser = _User;
-	m_Target = _Target;
-	m_Skill = _Skill;
+	// Niagara와 BoxCollision이 있는 객체를 생성 후 소멸한다.
 
-	if (AMyPlayer* pPlayer = Cast<AMyPlayer>(_Target))
-	{
-		m_StrikeZone = pPlayer->GetStrikeZone();
+	FActorSpawnParameters SpawnParam = {};
 
-		// 해당 스트라이크 존 내부 중 랜덤으로 목적지를 설정
-		FVector pZoneCenterPos = m_StrikeZone->GetComponentLocation();
-/*		FVector pZoneScale = m_StrikeZone->GetComponentScale();*/
-		FVector pZoneScale = m_StrikeZone->GetScaledBoxExtent();
+	// 투사체를 생성시키는 플레이어를 소유자로 설정
+	SpawnParam.Owner = m_SkillUser;
 
-		float RandY = FMath::RandRange(pZoneCenterPos.Y - pZoneScale.Y, pZoneCenterPos.Y + pZoneScale.Y);
-		float RandZ = FMath::RandRange(pZoneCenterPos.Z - pZoneScale.Z, pZoneCenterPos.Z + pZoneScale.Z);
+	// 투사체 유발자 (데미지 공식 등의 권한을 지닌)
+	SpawnParam.Instigator = m_SkillUser;
 
-		m_Destination = FVector(pZoneCenterPos.X, RandY, RandZ);
-	}
+	AExplosion* pExplosion = m_SkillUser->GetWorld()->
+		SpawnActor<AExplosion>(
+			ExplosionClass,
+			GetActorLocation(),
+			FRotator::ZeroRotator,
+			SpawnParam);
+
+	m_WarningSign->Destroy();
+	Destroy();
 }
+
+void APitchProjectile::InitBeforeShoot()
+{
+	m_Elapsed = 0.f;
+
+	m_StartLocation = GetActorLocation();
+	m_DirVec = m_Destination - GetActorLocation();
+	m_Distance = m_DirVec.Length();
+	m_DirVec.Normalize();
+}
+
 

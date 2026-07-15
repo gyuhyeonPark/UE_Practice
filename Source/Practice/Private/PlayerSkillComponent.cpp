@@ -9,6 +9,8 @@
 #include "EnhancedInputComponent.h"
 #include "SkillDataBase.h"
 
+#include "MyPlayer.h"
+
 UPlayerSkillComponent::UPlayerSkillComponent()
 {
 	for (int32 i = (int32)ESkillSlot::COMMON_SECTION_END + 1; i < (int32)ESkillSlot::PLAYER_SECTION_END; ++i)
@@ -20,9 +22,6 @@ UPlayerSkillComponent::UPlayerSkillComponent()
 void UPlayerSkillComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
-	// 설정된 BattingMode 스킬의 Montage를 멤버에 Binding.
-	m_BattingMontage = m_PlayerSkillSlots[0].SkillData->Montage;
 }
 
 void UPlayerSkillComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -57,6 +56,10 @@ void UPlayerSkillComponent::Bind(UEnhancedInputComponent* _EIC, UInputContainer*
 		_EIC->BindAction(pAction, ETriggerEvent::Started, this, &UPlayerSkillComponent::StartCharge, (int32)ESkillSlot::BATTING_SKILL, true);	// Skill 발동
 		_EIC->BindAction(pAction, ETriggerEvent::Triggered, this, &UPlayerSkillComponent::ChargeTick);		// IA Trigger : 눌림
 		_EIC->BindAction(pAction, ETriggerEvent::Completed, this, &UPlayerSkillComponent::SwingFunc);
+		_EIC->BindAction(pAction,
+			ETriggerEvent::Canceled,
+			this,
+			&UPlayerSkillComponent::SwingFunc);
 	}
 	
 }
@@ -78,7 +81,27 @@ void UPlayerSkillComponent::ChargeTick()
 
 void UPlayerSkillComponent::SwingFunc()
 {
+	UE_LOG(LogTemp, Warning, TEXT("Swing Call, Charge Elapsed : %f"), m_ChargeElapsed);
+
+	// 맘에 들진 않지만... 우선 BattingModeWidget에 m_ChargeElapsed를 어떻게든 전달해보자꾸나...
+	if (AMyPlayer* pPlayer = Cast<AMyPlayer>(GetOwner()))
+	{
+		pPlayer->SendChargeElapsed(m_ChargeElapsed);
+	}
+
+	m_IsChargeOn = false;
+	m_ChargeElapsed = 0.f;
+
 	// Montage 재개.
-	m_SkeletalMeshCom->GetAnimInstance()->Montage_Resume(m_BattingMontage);
-	m_SkeletalMeshCom->GetAnimInstance()->Montage_SetPlayRate(m_BattingMontage, 1.7f);
+	if (m_BattingMontage)
+	{
+		if (m_SkeletalMeshCom->GetAnimInstance()->Montage_IsPlaying(m_BattingMontage))
+		{
+			m_SkeletalMeshCom->GetAnimInstance()->Montage_JumpToSection(TEXT("HitStart"));
+		}
+		else
+			m_SkeletalMeshCom->GetAnimInstance()->Montage_Resume(m_BattingMontage);
+		
+		m_SkeletalMeshCom->GetAnimInstance()->Montage_SetPlayRate(m_BattingMontage, 1.7f);
+	}
 }

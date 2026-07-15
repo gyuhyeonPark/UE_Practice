@@ -25,8 +25,9 @@ void UMyAnimInstance::AnimNotify_SkillEnd()
 
 void UMyAnimInstance::AnimNotify_BatImpact()
 {
-	// TEMP
-	AUIManager* pUIMgr = Cast<AUIManager>(Cast<APlayerController>(m_Character->GetController())->GetHUD());
+	// 해당 시점에...Player의 Aim과 Projectile의 WarningPos를 비교,
+	// 타이밍 또한 비교하는 로직이 필요.
+	m_Character->BatImpact();
 }
 
 void UMyAnimInstance::AnimNotify_Fire()
