@@ -19,7 +19,10 @@ AExplosion::AExplosion()
 
 	m_SphereCollision = CreateDefaultSubobject<USphereComponent>(TEXT("Sphere"));
 	m_SphereCollision->InitSphereRadius(500.f);
-	m_SphereCollision->SetCollisionProfileName(TEXT("ProjectileProfile"));
+	m_SphereCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	m_SphereCollision->SetCollisionResponseToAllChannels(ECR_Ignore);
+	m_SphereCollision->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+
 	RootComponent = m_SphereCollision;
 
 	m_NiagaraCom = CreateDefaultSubobject<UNiagaraComponent>(TEXT("Niagara"));
@@ -28,8 +31,6 @@ AExplosion::AExplosion()
 	m_NiagaraCom->OnSystemFinished.AddDynamic(
 		this,
 		&AExplosion::OnEffectFinished);
-
-	m_SphereCollision->OnComponentBeginOverlap.AddDynamic(this, &AExplosion::OnSphereBeginOverlap);
 }
 
 // Called when the game starts or when spawned
@@ -41,6 +42,7 @@ void AExplosion::BeginPlay()
 	{
 		m_NiagaraCom->SetAsset(m_HitEffect);
 	}
+	m_SphereCollision->OnComponentBeginOverlap.AddDynamic(this, &AExplosion::OnSphereBeginOverlap);
 }
 
 // Called every frame
