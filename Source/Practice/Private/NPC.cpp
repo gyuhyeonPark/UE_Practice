@@ -13,6 +13,9 @@
 #include "Perception/AISenseConfig_Damage.h"
 #include "Perception/AISense_Damage.h"
 
+#include "Engine/DamageEvents.h"
+#include "../GlobalEnum.h"
+
 // Sets default values
 ANPC::ANPC()
 {
@@ -89,6 +92,11 @@ float ANPC::TakeDamage(float _Damage, FDamageEvent const& _DamageEvent, AControl
 
 	if (m_DamagedMontage != nullptr)
 		GetMesh()->GetAnimInstance()->Montage_Play(m_DamagedMontage, m_DamagedMontageSpeed);
+
+	if (_DamageEvent.DamageTypeClass == UExplosionDamageType::StaticClass())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("!!!Expolosion Damaged!!!"));
+	}
 
 	// 3. PerceptionComponent에게 데미지 받은걸 보고하기
 	FVector InstigatorPos = _InstigatorActor ? _InstigatorActor->GetActorLocation() : GetActorLocation();

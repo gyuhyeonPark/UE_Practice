@@ -27,3 +27,6 @@ enum class EEquipType : uint8
 };
 
 
+class UExplosionDamageType : public UDamageType
+{
+};

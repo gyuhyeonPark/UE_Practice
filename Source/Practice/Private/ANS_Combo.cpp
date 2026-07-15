@@ -8,15 +8,18 @@ void UANS_Combo::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase
 {
 	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
 
-	USkillComponent* pSkillCom = MeshComp->GetOwner()->GetComponentByClass<USkillComponent>();
-	if (pSkillCom == nullptr)
-		return;
-
-	APawn* pSkillUser = Cast<APawn>(MeshComp->GetOwner());
-
-	if (pSkillUser->IsLocallyControlled())
+	if (MeshComp)
 	{
-		pSkillCom->OpenComboWindow();
+		USkillComponent* pSkillCom = MeshComp->GetOwner()->GetComponentByClass<USkillComponent>();
+		if (pSkillCom == nullptr)
+			return;
+
+		APawn* pSkillUser = Cast<APawn>(MeshComp->GetOwner());
+
+		if (pSkillUser->IsLocallyControlled())
+		{
+			pSkillCom->OpenComboWindow();
+		}
 	}
 }
 

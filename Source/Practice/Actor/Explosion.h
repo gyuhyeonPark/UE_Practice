@@ -31,6 +31,15 @@ protected:
 	UFUNCTION()
 	void OnEffectFinished(UNiagaraComponent* FinishedComponent);
 
+	UFUNCTION()
+	void OnSphereBeginOverlap(
+		UPrimitiveComponent* OverlappedComponent,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult);
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (DisplayName = "Collision"))
 	class USphereComponent* m_SphereCollision;
@@ -40,4 +49,6 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
 	class UNiagaraSystem* m_HitEffect;		// 생성시킬 투사체의 UCLASS 정보를 가리킴
+
+	float m_Damage;
 };

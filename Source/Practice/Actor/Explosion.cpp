@@ -5,15 +5,20 @@
 #include "Components/SphereComponent.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
+#include "GameFramework/Character.h"
+#include "Kismet/GameplayStatics.h"
+
+#include "../GlobalEnum.h"
 
 // Sets default values
 AExplosion::AExplosion()
+	: m_Damage(10.f)
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 
 	m_SphereCollision = CreateDefaultSubobject<USphereComponent>(TEXT("Sphere"));
-	m_SphereCollision->InitSphereRadius(10.f);
+	m_SphereCollision->InitSphereRadius(500.f);
 	m_SphereCollision->SetCollisionProfileName(TEXT("ProjectileProfile"));
 	RootComponent = m_SphereCollision;
 
@@ -23,6 +28,8 @@ AExplosion::AExplosion()
 	m_NiagaraCom->OnSystemFinished.AddDynamic(
 		this,
 		&AExplosion::OnEffectFinished);
+
+	m_SphereCollision->OnComponentBeginOverlap.AddDynamic(this, &AExplosion::OnSphereBeginOverlap);
 }
 
 // Called when the game starts or when spawned
@@ -46,5 +53,20 @@ void AExplosion::Tick(float DeltaTime)
 void AExplosion::OnEffectFinished(UNiagaraComponent* FinishedComponent)
 {
 	Destroy();
+}
+
+void AExplosion::OnSphereBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (OtherActor && OtherActor != this)
+	{
+		if (ACharacter* pCharacter = Cast<ACharacter>(OtherActor))
+		{
+			UGameplayStatics::ApplyDamage(OtherActor,
+				m_Damage,
+				nullptr,
+				nullptr,
+				UExplosionDamageType::StaticClass());
+		}
+	}
 }
 
