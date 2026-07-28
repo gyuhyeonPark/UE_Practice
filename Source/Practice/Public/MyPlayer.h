@@ -110,6 +110,9 @@ public:
 	void EnterBattingMode();
 	void ExitBattingMode();
 
+	bool IsStun() { return m_IsStun; } const
+	void EndStun() { m_IsStun = false; SetMoveScale(1.f); }
+
 	// Take Damage
 public:
 	virtual float TakeDamage(float _Damage, struct FDamageEvent const& _DamageEvent,
@@ -132,6 +135,11 @@ public:
 
 	void BatImpact();
 	void SendChargeElapsed(float _Elapsed) const;
+	
+	void Parrying();
+	bool IsParrying() const { return m_IsParrying; }
+
+	void SwitchWeaponHand(bool _IsRight);
 
 public:
 	void InitPostProcessMaterial();
@@ -198,11 +206,26 @@ protected:
 	FTimerHandle m_IllusionCreateHandle;
 	FTimerHandle m_IllusionStopHandle;
 
+protected:
+	// Hit Related
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Montage")
+	UAnimMontage* m_DamagedMontage;	// 스킬 모션
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Montage")
+	float m_DamagedMontageSpeed;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Montage")
+	UAnimMontage* m_StunMontage;	// 스킬 모션
+
+	bool m_IsStun;
+	bool m_IsParrying;
+
 	FTimerHandle m_HEHandle;
 	float m_HEElapsed;
 	float m_HEDuration;
 	float m_HEMaxWeight;
 
+protected:
 	// Batting Mode Camera Move
 	FTimerHandle m_BModeZoomHandle;
 	float m_BZoomElapsed;
@@ -249,7 +272,6 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (DisplayName = "DisplayingUI"))
 	class UPaperSpriteComponent* m_CurrentUI;
-
 private:
 	bool m_JumpLock;
 	float m_JumpCurLockTime;

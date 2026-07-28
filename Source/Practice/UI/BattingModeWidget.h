@@ -71,6 +71,5 @@ protected:
 	FVector2D m_StartWarningSize;
 
 	float m_ChargeElapsed;
-
 	class APitchProjectile* m_CurrentProjectile;
 };

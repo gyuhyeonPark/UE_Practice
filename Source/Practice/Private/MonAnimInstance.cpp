@@ -32,6 +32,13 @@ void UMonAnimInstance::AnimNotify_Fire()
 		m_Character->GetSkillComponent()->Fire();
 }
 
+void UMonAnimInstance::AnimNotify_StunEnd()
+{
+	if (m_Character->IsLocallyControlled())
+		m_Character->EndStun();
+}
+
+
 void UMonAnimInstance::NativeInitializeAnimation()
 {
 	Super::NativeInitializeAnimation();

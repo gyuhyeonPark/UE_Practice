@@ -54,6 +54,13 @@ void USkillDataPlayer::OnEndSkill_Implementation(APawn* _SkillUser, USkillCompon
 {
 	AMyPlayer* pPlayer = Cast<AMyPlayer>(_SkillUser);
 
-	pPlayer->SetMoveScale(1.f);
-	pPlayer->SetRotateScale(1.f);
+	// Stun으로 인한 EndSkill 호출일 경우
+	if (!pPlayer->IsStun())
+	{
+		pPlayer->SetMoveScale(1.f);
+		pPlayer->SetRotateScale(1.f);
+
+		if (pPlayer->GetCombatMode() == ECombatMode::BATTING)
+			pPlayer->ExitBattingMode();
+	}
 }

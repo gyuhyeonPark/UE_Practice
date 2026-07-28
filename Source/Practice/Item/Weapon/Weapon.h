@@ -28,6 +28,8 @@ public:
 public:
 	FVector GetHitSockPos() { return weaponMesh->GetSocketLocation(TEXT("HitBoxSock")); }
 
+	UStaticMeshComponent* GetMesh() { return weaponMesh; }
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
 	UStaticMeshComponent* weaponMesh;

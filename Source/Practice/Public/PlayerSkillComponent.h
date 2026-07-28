@@ -28,6 +28,13 @@ public:
 	void ChargeTick();
 	void SwingFunc();
 
+	virtual void SetWeapon(class AWeapon* _Weapon) override;
+	void SwitchWeaponHand(bool _IsRight = true);
+
+	void ParryingFunc();
+protected:
+	void CheckAndUseSkill(int32 _SlotIdx, bool _IsBMode);
+
 protected:
 	// 스킬 장착 가능 슬롯 (Blueprint)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PlayerSkills", meta = (TitleProperty = "SlotType"))
@@ -39,4 +46,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BattingMontage")
 	UAnimMontage* m_BattingMontage;
+
+protected:
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	class UNiagaraComponent* m_ParryingNiagaraCom;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ParryingEffect")
+	class UNiagaraSystem* m_ParryingEffect;		// 생성시킬 투사체의 UCLASS 정보를 가리킴
+
 };

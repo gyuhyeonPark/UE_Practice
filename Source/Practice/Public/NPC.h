@@ -49,6 +49,10 @@ public:
 	void HideHPBar();
 	void ShowHPBar();
 
+
+	bool IsStun() { return m_IsStun; } const
+	void EndStun() { m_IsStun = false; }
+
 protected:
 	UPROPERTY(EditAnywhere, Category = "Info", meta = (DisplayName = "TeamID"))
 	FGenericTeamId m_TeamId;
@@ -74,5 +78,10 @@ protected:
 	UAnimMontage* m_DamagedMontage;	// 스킬 모션
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Montage")
-	float m_DamagedMontageSpeed;		// 스킬 시전 시 캐릭터 회전 속도
+	float m_DamagedMontageSpeed;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Montage")
+	UAnimMontage* m_StunMontage;	// 스킬 모션
+
+	bool m_IsStun;
 };

@@ -29,6 +29,9 @@ public:
 	void AnimNotify_Fire();
 
 	UFUNCTION()
+	void AnimNotify_StunEnd();
+
+	UFUNCTION()
 	void AnimNotify_ChargeEnd();
 
 protected:
@@ -50,6 +53,9 @@ protected:
 	bool	m_IsBattingMode;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = "Movement")
+	bool	m_IsStun;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = "Movement")
 	bool	m_IsBatting;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = "Movement")
@@ -63,4 +69,7 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Actor")
 	class AMyPlayer* m_Character;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SlowRatio")
+	float ParryingSlowRatio;
 };

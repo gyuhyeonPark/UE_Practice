@@ -119,3 +119,10 @@ public:
 		ItemType = EItemType::Equipment;
 	}
 };
+
+
+UCLASS()
+class PRACTICE_API UExplosionDamageType : public UDamageType
+{
+	GENERATED_BODY()
+};

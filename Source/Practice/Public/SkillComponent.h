@@ -120,7 +120,7 @@ public:
 	void Pitch();
 
 public:
-	void SetWeapon(class AWeapon* _Weapon) { m_Weapon = _Weapon; }
+	virtual void SetWeapon(class AWeapon* _Weapon) { m_Weapon = _Weapon; }
 
 public:
 	// 서버 입장에서 다른 클라이언트들에게 스킬 모션 재생을 알려주는 멀티캐스트 함수

@@ -17,6 +17,7 @@
 #include "PlayerSkillComponent.h"
 #include "PlayerStatComponent.h"
 #include "../GlobalEnum.h"
+#include "GlobalData.h"
 
 #include "../UI/UIManager.h"
 #include "../UI/BattingModeWidget.h"
@@ -31,6 +32,8 @@
 
 #include "PaperSpriteComponent.h"
 
+#include "Engine/DamageEvents.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 AMyPlayer::AMyPlayer()
@@ -138,7 +141,6 @@ void AMyPlayer::BeginPlay()
 		m_SkillCom->SetWeapon(pWeapon);
 	}
 
-
 	InitPostProcessMaterial();
 
 	m_Camera->SetFieldOfView(m_NormalFOV);
@@ -156,7 +158,7 @@ void AMyPlayer::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	// 점프 쿨타임 적용
-	if (m_JumpLock)
+	if (m_JumpLock && !m_IsStun)
 	{
 		m_JumpCurLockTime += DeltaTime;
 		if (m_JumpCurLockTime >= m_JumpLockTime)
@@ -192,8 +194,8 @@ void AMyPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 	if (const UInputAction* pAction = m_InputContainer->FindIAByName(TEXT("IA_Sprint")))
 	{
-		pEIC->BindAction(pAction, ETriggerEvent::Triggered, this, &AMyPlayer::SprintTriggered);
-		pEIC->BindAction(pAction, ETriggerEvent::Completed, this, &AMyPlayer::SprintCompleted);
+/*		pEIC->BindAction(pAction, ETriggerEvent::Triggered, this, &AMyPlayer::SprintTriggered);
+		pEIC->BindAction(pAction, ETriggerEvent::Completed, this, &AMyPlayer::SprintCompleted);*/
 	}
 
 	if (const UInputAction* pAction = m_InputContainer->FindIAByName(TEXT("IA_InvenToggle")))
@@ -224,7 +226,7 @@ void AMyPlayer::MoveAction(const FInputActionValue& _Value)
 
 void AMyPlayer::JumpAction(const FInputActionValue& _Value)
 {
-	if (m_JumpLock)
+	if (m_JumpLock || m_IsStun || m_CombatMode == ECombatMode::BATTING)
 		return;
 
 	ChangePlayerState(EPlayerState::JUMP);
@@ -367,7 +369,6 @@ void AMyPlayer::ExitBattingMode()
 		return;
 
 	m_CombatMode = ECombatMode::NORMAL;
-	SetMoveScale(1.f);
 
 	m_InputContainer->SetNormalMode(GetController());
 
@@ -376,6 +377,14 @@ void AMyPlayer::ExitBattingMode()
 
 	m_SkillCom->SetSkillSlotNormal();
 	
+	if (m_IsParrying)
+	{
+		m_IsParrying = false;
+		UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.0f);
+	}
+
+	SwitchWeaponHand(true);
+
 	m_SkillCom->EndSkill();
 
 	m_BattingModeWidget->SetVisibility(false);
@@ -389,6 +398,11 @@ void AMyPlayer::ExitBattingMode()
 		this,
 		&AMyPlayer::BattingModeUnzoom,
 		m_BZoomTick, true);
+}
+
+void AMyPlayer::SwitchWeaponHand(bool _IsRight)
+{
+	m_SkillCom->SwitchWeaponHand(_IsRight);
 }
 
 void AMyPlayer::RightClickInteraction(const FInputActionValue& _Value)
@@ -447,7 +461,9 @@ float AMyPlayer::TakeDamage(float _Damage, FDamageEvent const& _DamageEvent, ACo
 	float CurHP = m_StatCom->GetStat(TEXT("CurHP"));
 	float MaxHP = m_StatCom->GetStat(TEXT("MaxHP"));
 	
-	CurHP -= Damage;
+	const float GroggyRate = m_IsStun ? 1.5f : 1.f;
+
+	CurHP -= Damage * GroggyRate;
 
 	if (CurHP < 0.f)
 		CurHP = 0.f;
@@ -460,7 +476,31 @@ float AMyPlayer::TakeDamage(float _Damage, FDamageEvent const& _DamageEvent, ACo
 		m_OnTakeDamage.Broadcast(CurHP, MaxHP);
 	}
 
-	TriggerHeartEffect(3.f, 1.f);
+	// 2. 사용중인 스킬이 있으면 스킬을 취소한다.
+	USkillComponent* pSkillCom = GetComponentByClass<USkillComponent>();
+	if (pSkillCom == nullptr)
+		return Damage;
+
+	pSkillCom->CancleCurSkill();
+
+	if (_DamageEvent.DamageTypeClass == UExplosionDamageType::StaticClass())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("!!!Expolosion Damaged!!!"));
+
+		if (m_StunMontage != nullptr)
+		{
+			m_IsStun = true;
+  			SetMoveScale(0.f);
+			GetMesh()->GetAnimInstance()->Montage_Play(m_StunMontage);
+		}
+	}
+	else
+	{
+		if (m_DamagedMontage != nullptr && !m_IsStun)
+			GetMesh()->GetAnimInstance()->Montage_Play(m_DamagedMontage, m_DamagedMontageSpeed);
+	}
+	// 피격 UI는 나중에 손보기
+	//TriggerHeartEffect(3.f, 0.6f);
 
 	return Damage;
 }
@@ -512,56 +552,62 @@ void AMyPlayer::StopIllusion()
 void AMyPlayer::TriggerHeartEffect(float _Duration, float _MaxWeight)
 {
 	FWeightedBlendable& Pair = m_Camera->PostProcessSettings.WeightedBlendables.Array[0];
+
+	// 재질 효과 온
 	Pair.Weight = 1.f;
 
+	// 초기화	
 	m_HEElapsed = 0.f;
 	m_HEDuration = _Duration;
 	m_HEMaxWeight = _MaxWeight;
 
-	// 일정 시간마다 호출되는 타이머 등록
-	GetWorldTimerManager().SetTimer(m_HEHandle,
-		this,
-		&AMyPlayer::HeartEffectUpdate,
-		0.1f, true);
+	GetWorldTimerManager().SetTimer(m_HEHandle, this, &AMyPlayer::HeartEffectUpdate, 0.02f, true);
 }
 
 void AMyPlayer::HeartEffectUpdate()
 {
-	m_HEElapsed += 0.1f;
-	FWeightedBlendable& Pair = m_Camera->PostProcessSettings.WeightedBlendables.Array[0];
+	// 효과가 진행된 시간을 체크
+	m_HEElapsed += 0.02f;
 
-	if (m_HEElapsed >= m_HEDuration)
+	// 효과 유지시간이 끝났다면
+	if (m_HEDuration <= m_HEElapsed)
 	{
+		FWeightedBlendable& Pair = m_Camera->PostProcessSettings.WeightedBlendables.Array[0];
+
+		// 재질 효과 Off
 		Pair.Weight = 0.f;
+
+		// 타이머 종료
 		GetWorldTimerManager().ClearTimer(m_HEHandle);
 	}
+
+	// 효과가 진행중이라면
 	else
 	{
-		Pair.Weight = 1.f;
+		// 총 유지시간의 절반
+		float HEHalfTime = m_HEDuration / 2.f;
 
-		float halfTime = m_HEDuration / 2.f;
+		float CurAlpha = 0.f;
 
-		float curAlpha = 0.f;
-
-		if (m_HEElapsed < halfTime)
+		// 초반부, 알파값이 상승
+		if (m_HEElapsed < HEHalfTime)
 		{
-			curAlpha = FMath::Lerp(
-				0.f,
-				m_HEMaxWeight,
-				m_HEElapsed / halfTime);
+			CurAlpha = FMath::Lerp(0.f, m_HEMaxWeight, m_HEElapsed / HEHalfTime);
 		}
+
+		// 후반부, 알파값이 하강
 		else
 		{
-			curAlpha = FMath::Lerp(
-				0.f,
-				m_HEMaxWeight,
-				(m_HEElapsed - halfTime) / halfTime);
+			float RemainTime = m_HEElapsed - HEHalfTime;
+			CurAlpha = FMath::Lerp(m_HEMaxWeight, 0.f, RemainTime / HEHalfTime);
 		}
 
-		// 재질 효과 off
+		FWeightedBlendable& Pair = m_Camera->PostProcessSettings.WeightedBlendables.Array[0];
+
+		// 재질의 파라미터에, 계산한 가중치값 전달
 		if (UMaterialInstanceDynamic* pMDI = Cast<UMaterialInstanceDynamic>(Pair.Object))
 		{
-			pMDI->SetScalarParameterValue(TEXT("BlendWeight"), curAlpha);
+			pMDI->SetScalarParameterValue(TEXT("BlendWeight"), CurAlpha);
 		}
 	}
 }
@@ -661,6 +707,12 @@ void AMyPlayer::SendChargeElapsed(float _Elapsed) const
 	{
 		pBModeWidget->SetChargeElapsed(_Elapsed);
 	}
+}
+
+void AMyPlayer::Parrying()
+{
+	m_IsParrying = true;
+	m_SkillCom->ParryingFunc();
 }
 
 void AMyPlayer::InitPostProcessMaterial()

@@ -8,6 +8,7 @@
 
 #include "../UI/UIManager.h"
 #include "Engine/StaticMeshActor.h"
+#include "Kismet/GameplayStatics.h"
 
 void UMyAnimInstance::AnimNotify_OnLandingStart()
 {
@@ -28,12 +29,25 @@ void UMyAnimInstance::AnimNotify_BatImpact()
 	// 해당 시점에...Player의 Aim과 Projectile의 WarningPos를 비교,
 	// 타이밍 또한 비교하는 로직이 필요.
 	m_Character->BatImpact();
+
+	if (m_Character->IsParrying())
+	{
+		UGameplayStatics::SetGlobalTimeDilation(GetWorld(), ParryingSlowRatio);
+		// Bat를 반대 손으로 이전
+		m_Character->SwitchWeaponHand(false);
+	}
 }
 
 void UMyAnimInstance::AnimNotify_Fire()
 {
 	if (m_Character->IsLocallyControlled())
 		m_Character->GetSkillComponent()->Fire();
+}
+
+void UMyAnimInstance::AnimNotify_StunEnd()
+{
+	if (m_Character->IsLocallyControlled())
+		m_Character->EndStun();
 }
 
 void UMyAnimInstance::AnimNotify_ChargeEnd()
@@ -86,4 +100,7 @@ void UMyAnimInstance::NativeUpdateAnimation(float _DT)
 
 	// Batting Mode 여부
 	m_IsBattingMode = m_Character->GetCombatMode() == ECombatMode::BATTING ? true : false;
+
+	// Stun 여부
+	m_IsStun = m_Character->IsStun();
 }

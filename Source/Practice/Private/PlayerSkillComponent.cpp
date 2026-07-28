@@ -11,17 +11,32 @@
 
 #include "MyPlayer.h"
 
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
+
+#include "../Item/Weapon/Weapon.h"
+
 UPlayerSkillComponent::UPlayerSkillComponent()
 {
 	for (int32 i = (int32)ESkillSlot::COMMON_SECTION_END + 1; i < (int32)ESkillSlot::PLAYER_SECTION_END; ++i)
 	{
 		m_PlayerSkillSlots.Add(FSkillSlotInfo{ (ESkillSlot)i, });
 	}
+
+	m_ParryingNiagaraCom = CreateDefaultSubobject<UNiagaraComponent>(TEXT("ParryingImpact"));
+	m_ParryingNiagaraCom->SetAutoActivate(false);   // 시작 시 자동 재생 X
+	m_ParryingNiagaraCom->SetAllowScalability(true);
+	m_ParryingNiagaraCom->SetRelativeScale3D(FVector(0.25f));
 }
 
 void UPlayerSkillComponent::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (m_ParryingNiagaraCom && m_ParryingEffect)
+	{
+		m_ParryingNiagaraCom->SetAsset(m_ParryingEffect);
+	}
 }
 
 void UPlayerSkillComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -47,7 +62,9 @@ void UPlayerSkillComponent::Bind(UEnhancedInputComponent* _EIC, UInputContainer*
 		FString IAName = FString::Printf(TEXT("IA_%s"), *SlotName);
 
 		if (const UInputAction* pAction = _InputContainer->FindIAByName(IAName))
-			_EIC->BindAction(pAction, ETriggerEvent::Started, this, &USkillComponent::UseSkill, i, false);
+		{
+			_EIC->BindAction(pAction, ETriggerEvent::Started, this, &UPlayerSkillComponent::CheckAndUseSkill, i, false);
+		}
 	}
 
 	// Batting Mode Skills Binding
@@ -66,6 +83,10 @@ void UPlayerSkillComponent::Bind(UEnhancedInputComponent* _EIC, UInputContainer*
 
 void UPlayerSkillComponent::StartCharge(int32 _SlotIndex, bool _IsBMode)
 {
+	AMyPlayer* pPlayer = Cast<AMyPlayer>(GetOwner());
+	if (pPlayer->IsStun())
+		return;
+
 	// UseSkill에서는 각종 스킬 상태 관리 + Montage 재생이 될 예정
 	UseSkill(_SlotIndex, _IsBMode);
 
@@ -103,5 +124,49 @@ void UPlayerSkillComponent::SwingFunc()
 			m_SkeletalMeshCom->GetAnimInstance()->Montage_Resume(m_BattingMontage);
 		
 		m_SkeletalMeshCom->GetAnimInstance()->Montage_SetPlayRate(m_BattingMontage, 1.7f);
+	}
+}
+
+void UPlayerSkillComponent::ParryingFunc()
+{
+	if (m_ParryingNiagaraCom)
+	{
+		m_ParryingNiagaraCom->SetWorldLocation(m_Weapon->GetHitSockPos());
+	}
+	m_ParryingNiagaraCom->ActivateSystem();
+}
+
+void UPlayerSkillComponent::CheckAndUseSkill(int32 _SlotIdx, bool _IsBMode)
+{
+	AMyPlayer* pPlayer = Cast<AMyPlayer>(GetOwner());
+
+	if (pPlayer->IsStun())
+		return;
+
+	UseSkill(_SlotIdx, _IsBMode);
+}
+
+void UPlayerSkillComponent::SetWeapon(AWeapon* _Weapon)
+{
+	USkillComponent::SetWeapon(_Weapon);
+}
+
+void UPlayerSkillComponent::SwitchWeaponHand(bool _IsRight)
+{
+	AMyPlayer* pPlayer = Cast<AMyPlayer>(GetOwner());
+	if (!pPlayer)
+		return;
+
+	if (_IsRight)
+	{
+		m_Weapon->AttachToComponent(pPlayer->GetMesh(),
+			FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+			TEXT("WeaponSock"));
+	}
+	else
+	{
+		m_Weapon->AttachToComponent(pPlayer->GetMesh(),
+			FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+			TEXT("WeaponReleaseSock"));
 	}
 }

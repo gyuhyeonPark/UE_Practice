@@ -190,6 +190,11 @@ void UBattingModeWidget::FailedParrying()
 {
 	// 대응되어 있는 투사체를 폭발 시키고, Deregister
 	m_CurrentProjectile->Explode();
+	if (AMyPlayer* pPlayer = Cast<AMyPlayer>(GetOwningPlayerPawn()))
+	{
+		// Exit하면 연출이 부자연스럽다... 뭔가 방법이 필요함.
+		pPlayer->ExitBattingMode();
+	}
 }
 
 void UBattingModeWidget::Impact()
@@ -236,21 +241,23 @@ void UBattingModeWidget::Impact()
 	UE_LOG(LogTemp, Warning, TEXT("Score CHARGE : %f"), ChargeScore);
 
 
+	AMyPlayer* pPlayer = Cast<AMyPlayer>(GetOwningPlayerPawn());
+
 	// FinalScore에 따라 행동을 결정하기.
-			// 해당 Score가 0이고,  패링 실패, 투사체가 폭발해야 함
-	if (FinalScore <= 0.f)
+	// 해당 Score가 0이고,  패링 실패, 투사체가 폭발해야 함
+/*	if (FinalScore <= 0.f)
 	{
 		FailedParrying();
 	}
-	else
+	else*/
 	{
 		ChangeProjectileAttitude();
-	}
 
-	if (AMyPlayer* pPlayer = Cast<AMyPlayer>(GetOwningPlayerPawn()))
-	{
-		// Exit하면 연출이 부자연스럽다... 뭔가 방법이 필요함.
-		pPlayer->ExitBattingMode();
+		// TEMP : 좀 더 높은 점수에서 Impact 재생하기
+		if (pPlayer)
+		{
+			pPlayer->Parrying();
+		}
 	}
 }
 

@@ -25,8 +25,3 @@ enum class EEquipType : uint8
 	Armor UMETA(DisplayName = "Armor"),
 	Accessory UMETA(DisplayName = "Accessory"),
 };
-
-
-class UExplosionDamageType : public UDamageType
-{
-};

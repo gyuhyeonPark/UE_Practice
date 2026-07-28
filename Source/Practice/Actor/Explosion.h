@@ -27,6 +27,9 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+public:
+	void Init(APawn* _SkillUser, APawn* _Target) { m_SkillUser = _SkillUser; m_Target = _Target; }
+
 protected:
 	UFUNCTION()
 	void OnEffectFinished(UNiagaraComponent* FinishedComponent);
@@ -51,4 +54,9 @@ protected:
 	class UNiagaraSystem* m_HitEffect;		// 생성시킬 투사체의 UCLASS 정보를 가리킴
 
 	float m_Damage;
+
+	float m_Elapsed;
+
+	APawn* m_SkillUser;
+	APawn* m_Target;
 };

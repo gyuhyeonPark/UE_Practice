@@ -162,22 +162,21 @@ void APitchProjectile::ChangeAttitude()
 
 void APitchProjectile::Explode()
 {
+	FVector SpawnPos = GetActorLocation();
+
 	// Niagara와 BoxCollision이 있는 객체를 생성 후 소멸한다.
-
-	FActorSpawnParameters SpawnParam = {};
-
-	// 투사체를 생성시키는 플레이어를 소유자로 설정
-	SpawnParam.Owner = m_SkillUser;
-
-	// 투사체 유발자 (데미지 공식 등의 권한을 지닌)
-	SpawnParam.Instigator = m_SkillUser;
-
 	AExplosion* pExplosion = m_SkillUser->GetWorld()->
-		SpawnActor<AExplosion>(
+		SpawnActorDeferred<AExplosion>(
 			ExplosionClass,
-			GetActorLocation(),
-			FRotator::ZeroRotator,
-			SpawnParam);
+			FTransform(FRotator::ZeroRotator, SpawnPos),
+			this,
+			nullptr,
+			ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+
+
+	pExplosion->Init(m_SkillUser, m_Target);
+
+	pExplosion->FinishSpawning(FTransform(FRotator::ZeroRotator, SpawnPos));
 
 	m_WarningSign->Destroy();
 	Destroy();

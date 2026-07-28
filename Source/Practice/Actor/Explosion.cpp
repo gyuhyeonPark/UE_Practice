@@ -2,20 +2,21 @@
 
 
 #include "../Actor/Explosion.h"
+#include "MyPlayer.h"
 #include "Components/SphereComponent.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "GameFramework/Character.h"
 #include "Kismet/GameplayStatics.h"
 
-#include "../GlobalEnum.h"
+#include "GlobalData.h"
 
 // Sets default values
 AExplosion::AExplosion()
 	: m_Damage(10.f)
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	m_SphereCollision = CreateDefaultSubobject<USphereComponent>(TEXT("Sphere"));
 	m_SphereCollision->InitSphereRadius(500.f);
@@ -28,21 +29,29 @@ AExplosion::AExplosion()
 	m_NiagaraCom = CreateDefaultSubobject<UNiagaraComponent>(TEXT("Niagara"));
 	m_NiagaraCom->SetupAttachment(m_SphereCollision);
 
-	m_NiagaraCom->OnSystemFinished.AddDynamic(
+	int a = 0;
+
+/*	m_NiagaraCom->OnSystemFinished.AddDynamic(
 		this,
-		&AExplosion::OnEffectFinished);
+		&AExplosion::OnEffectFinished);*/
 }
 
 // Called when the game starts or when spawned
 void AExplosion::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	if (m_NiagaraCom && m_HitEffect)
 	{
 		m_NiagaraCom->SetAsset(m_HitEffect);
 	}
 	m_SphereCollision->OnComponentBeginOverlap.AddDynamic(this, &AExplosion::OnSphereBeginOverlap);
+
+	UE_LOG(LogTemp, Warning,
+		TEXT("CanEverTick=%d StartEnabled=%d TickEnabled=%d"),
+		PrimaryActorTick.bCanEverTick,
+		PrimaryActorTick.bStartWithTickEnabled,
+		IsActorTickEnabled());
 }
 
 // Called every frame
@@ -50,6 +59,12 @@ void AExplosion::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	m_Elapsed += DeltaTime;
+
+	if (m_Elapsed >= 0.75f)
+	{
+		Destroy();
+	}
 }
 
 void AExplosion::OnEffectFinished(UNiagaraComponent* FinishedComponent)
@@ -61,13 +76,21 @@ void AExplosion::OnSphereBeginOverlap(UPrimitiveComponent* OverlappedComponent, 
 {
 	if (OtherActor && OtherActor != this)
 	{
-		if (ACharacter* pCharacter = Cast<ACharacter>(OtherActor))
+		if (ACharacter* pTargetCharacter = Cast<ACharacter>(OtherActor))
 		{
-			UGameplayStatics::ApplyDamage(OtherActor,
-				m_Damage,
-				nullptr,
-				nullptr,
-				UExplosionDamageType::StaticClass());
+			if (pTargetCharacter == m_Target)
+			{
+				UGameplayStatics::ApplyDamage(OtherActor,
+					m_Damage,
+					nullptr,
+					nullptr,
+					UExplosionDamageType::StaticClass());
+
+				if (AMyPlayer* pTargetPlayer = Cast<AMyPlayer>(pTargetCharacter))
+				{
+					pTargetPlayer->ExitBattingMode();
+				}
+			}
 		}
 	}
 }

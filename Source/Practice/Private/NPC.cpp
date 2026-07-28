@@ -14,7 +14,7 @@
 #include "Perception/AISense_Damage.h"
 
 #include "Engine/DamageEvents.h"
-#include "../GlobalEnum.h"
+#include "GlobalData.h"
 
 // Sets default values
 ANPC::ANPC()
@@ -70,7 +70,9 @@ float ANPC::TakeDamage(float _Damage, FDamageEvent const& _DamageEvent, AControl
 		float CurHP = m_NPCStatCom->GetStat(TEXT("CurHP"));
 		float MaxHP = m_NPCStatCom->GetStat(TEXT("MaxHP"));
 
-		CurHP -= fDamage;
+		const float GroggyRate = m_IsStun ? 1.5f : 1.f;
+
+		CurHP -= fDamage * GroggyRate;
 
 		if (CurHP < 0.f)
 			CurHP = 0.f;
@@ -90,14 +92,21 @@ float ANPC::TakeDamage(float _Damage, FDamageEvent const& _DamageEvent, AControl
 	
 	pSkillCom->CancleCurSkill();
 
-	if (m_DamagedMontage != nullptr)
-		GetMesh()->GetAnimInstance()->Montage_Play(m_DamagedMontage, m_DamagedMontageSpeed);
-
 	if (_DamageEvent.DamageTypeClass == UExplosionDamageType::StaticClass())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("!!!Expolosion Damaged!!!"));
-	}
 
+		if (m_StunMontage != nullptr)
+		{
+			GetMesh()->GetAnimInstance()->Montage_Play(m_StunMontage);
+			m_IsStun = true;
+		}
+	}
+	else
+	{
+		if (m_DamagedMontage != nullptr && !m_IsStun)
+			GetMesh()->GetAnimInstance()->Montage_Play(m_DamagedMontage, m_DamagedMontageSpeed);
+	}
 	// 3. PerceptionComponent에게 데미지 받은걸 보고하기
 	FVector InstigatorPos = _InstigatorActor ? _InstigatorActor->GetActorLocation() : GetActorLocation();
 
