@@ -6,6 +6,7 @@
 #include "../UI/InvenWidget.h"
 #include "../UI/BattingModeWidget.h"
 #include "../UI/ParryJudgementWidget.h"
+#include "../UI/LockOnWidget.h"
 
 void UMainHUD::NativeOnInitialized()
 {
@@ -27,4 +28,9 @@ void UMainHUD::UpdatePlayerHP(float _Ratio)
 void UMainHUD::PlaySwingUIAnimation(EParryJudgementType _Type)
 {
 	ParryJudgementWidget->Play(_Type);
+}
+
+void UMainHUD::PlayLockOnUIAnimation(EParryJudgementType _Type)
+{
+
 }

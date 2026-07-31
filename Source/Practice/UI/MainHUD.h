@@ -32,6 +32,7 @@ public:
 	class UInvenWidget* GetInventoryWidget() const { return InvenWidget; }
 
 	void PlaySwingUIAnimation(EParryJudgementType _Type);
+	void PlayLockOnUIAnimation(EParryJudgementType _Type);
 
 /*	class UBattingModeWidget* GetBattingModeWidget() const { return BattingModeWidget; }*/
 
@@ -44,6 +45,9 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	class UParryJudgementWidget* ParryJudgementWidget;
+
+	UPROPERTY(meta = (BindWidget))
+	class ULockOnWidget* LockOnWidget;
 
 /*	UPROPERTY(meta = (BindWidget))
 	class UBattingModeWidget* BattingModeWidget;*/
