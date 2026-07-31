@@ -25,3 +25,13 @@ enum class EEquipType : uint8
 	Armor UMETA(DisplayName = "Armor"),
 	Accessory UMETA(DisplayName = "Accessory"),
 };
+
+UENUM(BlueprintType)
+enum class EParryJudgementType : uint8
+{
+	SHIT UMETA(DisplayName = "SHIT"),
+	BAD UMETA(DisplayName = "BAD"),
+	GOOD UMETA(DisplayName = "GOOD"),
+	SICK UMETA(DisplayName = "SICK"),
+	END UMETA(Hidden),
+};

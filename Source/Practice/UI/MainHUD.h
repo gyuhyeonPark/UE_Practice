@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "../GlobalEnum.h"
 #include "MainHUD.generated.h"
 
 /**
@@ -30,6 +31,8 @@ public:
 
 	class UInvenWidget* GetInventoryWidget() const { return InvenWidget; }
 
+	void PlaySwingUIAnimation(EParryJudgementType _Type);
+
 /*	class UBattingModeWidget* GetBattingModeWidget() const { return BattingModeWidget; }*/
 
 protected:
@@ -38,6 +41,9 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	class UInvenWidget* InvenWidget;
+
+	UPROPERTY(meta = (BindWidget))
+	class UParryJudgementWidget* ParryJudgementWidget;
 
 /*	UPROPERTY(meta = (BindWidget))
 	class UBattingModeWidget* BattingModeWidget;*/

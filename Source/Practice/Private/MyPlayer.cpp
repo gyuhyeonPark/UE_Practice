@@ -373,15 +373,15 @@ void AMyPlayer::ExitBattingMode()
 	m_InputContainer->SetNormalMode(GetController());
 
 	// 재생 중인 몽타주가 있다면 STOP. Idle로 돌아가는 걸 기대.
-	GetMesh()->GetAnimInstance()->StopAllMontages(1.5f);
+	//GetMesh()->GetAnimInstance()->StopAllMontages(1.5f);
 
 	m_SkillCom->SetSkillSlotNormal();
 	
-	if (m_IsParrying)
+/*	if (m_IsParrying)
 	{
 		m_IsParrying = false;
 		UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.0f);
-	}
+	}*/
 
 	SwitchWeaponHand(true);
 
@@ -493,6 +493,8 @@ float AMyPlayer::TakeDamage(float _Damage, FDamageEvent const& _DamageEvent, ACo
   			SetMoveScale(0.f);
 			GetMesh()->GetAnimInstance()->Montage_Play(m_StunMontage);
 		}
+		if (m_CombatMode == ECombatMode::BATTING)
+			ExitBattingMode();
 	}
 	else
 	{
@@ -709,10 +711,10 @@ void AMyPlayer::SendChargeElapsed(float _Elapsed) const
 	}
 }
 
-void AMyPlayer::Parrying()
+void AMyPlayer::Parry(EParryJudgementType _ParryType)
 {
-	m_IsParrying = true;
-	m_SkillCom->ParryingFunc();
+	//m_IsParrying = true;
+	m_SkillCom->ParryingFunc(_ParryType);
 }
 
 void AMyPlayer::InitPostProcessMaterial()

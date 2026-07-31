@@ -62,7 +62,7 @@ public:
 
 	void ChangeAttitude();
 
-	void Explode();
+	void Explode(bool _ForceDamage = false);
 
 protected:
 	void InitBeforeShoot();
@@ -107,6 +107,8 @@ protected:
 	// 터질 때 생성할 폭발 콜리전 액터
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Explosion")
 	TSubclassOf<class AExplosion> ExplosionClass;		// 생성시킬 투사체의 UCLASS 정보를 가리킴
+
+	bool m_IsBattingMode;
 
 public:
 	FInitWarningPos m_InitWarningPos;

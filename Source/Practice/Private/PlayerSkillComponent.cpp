@@ -15,12 +15,15 @@
 #include "NiagaraFunctionLibrary.h"
 
 #include "../Item/Weapon/Weapon.h"
+#include "Kismet/GameplayStatics.h"
 
 UPlayerSkillComponent::UPlayerSkillComponent()
+	: m_SlowRatio(0.5f)
 {
 	for (int32 i = (int32)ESkillSlot::COMMON_SECTION_END + 1; i < (int32)ESkillSlot::PLAYER_SECTION_END; ++i)
 	{
 		m_PlayerSkillSlots.Add(FSkillSlotInfo{ (ESkillSlot)i, });
+		m_ParryingEffects.Add(FJudgementEffectInfo{ (EParryJudgementType)i, });
 	}
 
 	m_ParryingNiagaraCom = CreateDefaultSubobject<UNiagaraComponent>(TEXT("ParryingImpact"));
@@ -32,11 +35,6 @@ UPlayerSkillComponent::UPlayerSkillComponent()
 void UPlayerSkillComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if (m_ParryingNiagaraCom && m_ParryingEffect)
-	{
-		m_ParryingNiagaraCom->SetAsset(m_ParryingEffect);
-	}
 }
 
 void UPlayerSkillComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -127,13 +125,22 @@ void UPlayerSkillComponent::SwingFunc()
 	}
 }
 
-void UPlayerSkillComponent::ParryingFunc()
+void UPlayerSkillComponent::ParryingFunc(EParryJudgementType _ParryType)
 {
-	if (m_ParryingNiagaraCom)
+	if (_ParryType == EParryJudgementType::SICK)
 	{
-		m_ParryingNiagaraCom->SetWorldLocation(m_Weapon->GetHitSockPos());
+		UGameplayStatics::SetGlobalTimeDilation(GetWorld(), m_SlowRatio);
 	}
-	m_ParryingNiagaraCom->ActivateSystem();
+
+	if (m_ParryingNiagaraCom && m_ParryingEffects[(int32)_ParryType].EffectData != nullptr)
+	{
+		m_ParryingNiagaraCom->DeactivateImmediate();
+		m_ParryingNiagaraCom->SetAsset(m_ParryingEffects[(int32)_ParryType].EffectData.Get());
+		m_ParryingNiagaraCom->Activate(true);
+
+		m_ParryingNiagaraCom->SetWorldLocation(m_Weapon->GetHitSockPos());
+		m_ParryingNiagaraCom->ActivateSystem();
+	}
 }
 
 void UPlayerSkillComponent::CheckAndUseSkill(int32 _SlotIdx, bool _IsBMode)

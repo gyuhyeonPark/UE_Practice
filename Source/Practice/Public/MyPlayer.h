@@ -7,7 +7,7 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "../Interaction/InteractionComponent.h"
-
+#include "../GlobalEnum.h"
 #include "MyPlayer.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnTakeDamage, float, CurHP, float, MaxHP);
@@ -136,8 +136,7 @@ public:
 	void BatImpact();
 	void SendChargeElapsed(float _Elapsed) const;
 	
-	void Parrying();
-	bool IsParrying() const { return m_IsParrying; }
+	void Parry(EParryJudgementType _ParryType);
 
 	void SwitchWeaponHand(bool _IsRight);
 
@@ -218,7 +217,6 @@ protected:
 	UAnimMontage* m_StunMontage;	// 스킬 모션
 
 	bool m_IsStun;
-	bool m_IsParrying;
 
 	FTimerHandle m_HEHandle;
 	float m_HEElapsed;

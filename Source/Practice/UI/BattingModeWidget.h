@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "../GlobalEnum.h"
 #include "BattingModeWidget.generated.h"
 
 /**
@@ -26,6 +27,8 @@ protected:
 protected:
 /*	void SynchronizeUITransform();*/
 
+	EParryJudgementType JudgeScore(float _Score);
+
 protected:
 	UFUNCTION()
 	void UpdateAimPos_Alt(float _XPos, float _YPos);
@@ -43,6 +46,7 @@ public:
 
 	void ChangeProjectileAttitude();
 	void FailedParrying();
+
 public:
 	void Impact();
 

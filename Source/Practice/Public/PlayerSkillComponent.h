@@ -4,7 +4,20 @@
 
 #include "CoreMinimal.h"
 #include "SkillComponent.h"
+#include "../GlobalEnum.h"
 #include "PlayerSkillComponent.generated.h"
+
+USTRUCT(BlueprintType)
+struct FJudgementEffectInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	EParryJudgementType SlotType;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TSoftObjectPtr<class UNiagaraSystem> EffectData;	// 비동기 로드에 대해선 TSoftObjectPtr<>로 선언하기.
+};
 
 UCLASS()
 class PRACTICE_API UPlayerSkillComponent : public USkillComponent
@@ -31,7 +44,10 @@ public:
 	virtual void SetWeapon(class AWeapon* _Weapon) override;
 	void SwitchWeaponHand(bool _IsRight = true);
 
-	void ParryingFunc();
+	void ParryingFunc(EParryJudgementType _ParryType);
+
+	UAnimMontage* GetBattingMontage() { return m_BattingMontage; }
+
 protected:
 	void CheckAndUseSkill(int32 _SlotIdx, bool _IsBMode);
 
@@ -52,6 +68,8 @@ protected:
 	class UNiagaraComponent* m_ParryingNiagaraCom;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ParryingEffect")
-	class UNiagaraSystem* m_ParryingEffect;		// 생성시킬 투사체의 UCLASS 정보를 가리킴
+	TArray<FJudgementEffectInfo> m_ParryingEffects;		// 생성시킬 투사체의 UCLASS 정보를 가리킴
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PerpectParrySlowRatio")
+	float m_SlowRatio;
 };

@@ -5,6 +5,7 @@
 #include "../UI/PlayerBar.h"
 #include "../UI/InvenWidget.h"
 #include "../UI/BattingModeWidget.h"
+#include "../UI/ParryJudgementWidget.h"
 
 void UMainHUD::NativeOnInitialized()
 {
@@ -21,4 +22,9 @@ void UMainHUD::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 void UMainHUD::UpdatePlayerHP(float _Ratio)
 {
 	PlayerBarWidget->UpdatePlayerHP(_Ratio);
+}
+
+void UMainHUD::PlaySwingUIAnimation(EParryJudgementType _Type)
+{
+	ParryJudgementWidget->Play(_Type);
 }

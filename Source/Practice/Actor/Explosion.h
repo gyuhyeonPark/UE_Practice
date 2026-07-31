@@ -28,7 +28,10 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 public:
-	void Init(APawn* _SkillUser, APawn* _Target) { m_SkillUser = _SkillUser; m_Target = _Target; }
+	void Init(APawn* _SkillUser, APawn* _Target, bool _ForceDamage = false)
+	{
+		m_SkillUser = _SkillUser; m_Target = _Target; m_IsForceDamage = _ForceDamage;
+	}
 
 protected:
 	UFUNCTION()
@@ -59,4 +62,6 @@ protected:
 
 	APawn* m_SkillUser;
 	APawn* m_Target;
+
+	bool m_IsForceDamage;
 };

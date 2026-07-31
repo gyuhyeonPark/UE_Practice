@@ -2,7 +2,6 @@
 
 
 #include "../Actor/Explosion.h"
-#include "MyPlayer.h"
 #include "Components/SphereComponent.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
@@ -29,8 +28,6 @@ AExplosion::AExplosion()
 	m_NiagaraCom = CreateDefaultSubobject<UNiagaraComponent>(TEXT("Niagara"));
 	m_NiagaraCom->SetupAttachment(m_SphereCollision);
 
-	int a = 0;
-
 /*	m_NiagaraCom->OnSystemFinished.AddDynamic(
 		this,
 		&AExplosion::OnEffectFinished);*/
@@ -45,8 +42,18 @@ void AExplosion::BeginPlay()
 	{
 		m_NiagaraCom->SetAsset(m_HitEffect);
 	}
-	m_SphereCollision->OnComponentBeginOverlap.AddDynamic(this, &AExplosion::OnSphereBeginOverlap);
 
+	// 확정타가 아니라면, Collision으로 데미지 줄 예정.
+	if (!m_IsForceDamage)
+		m_SphereCollision->OnComponentBeginOverlap.AddDynamic(this, &AExplosion::OnSphereBeginOverlap);
+	else
+	{
+		UGameplayStatics::ApplyDamage(m_Target,
+			m_Damage,
+			nullptr,
+			nullptr,
+			UExplosionDamageType::StaticClass());
+	}
 	UE_LOG(LogTemp, Warning,
 		TEXT("CanEverTick=%d StartEnabled=%d TickEnabled=%d"),
 		PrimaryActorTick.bCanEverTick,
@@ -85,11 +92,6 @@ void AExplosion::OnSphereBeginOverlap(UPrimitiveComponent* OverlappedComponent, 
 					nullptr,
 					nullptr,
 					UExplosionDamageType::StaticClass());
-
-				if (AMyPlayer* pTargetPlayer = Cast<AMyPlayer>(pTargetCharacter))
-				{
-					pTargetPlayer->ExitBattingMode();
-				}
 			}
 		}
 	}

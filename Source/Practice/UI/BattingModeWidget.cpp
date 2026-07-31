@@ -14,6 +14,10 @@
 #include "Components/Boxcomponent.h"
 #include "Components/CanvasPanelSlot.h"
 
+#include "../UI/MainHUD.h"
+
+constexpr float MAX_TIMING_ERROR = 0.15f;		// 15ms
+
 void UBattingModeWidget::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
@@ -69,6 +73,39 @@ void UBattingModeWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
 
 			WarningSlot->SetSize(NewSize);
 		}
+	}
+	
+	if (AMyPlayer* pPlayer = Cast<AMyPlayer>(GetOwningPlayerPawn()))
+	{
+		if (m_Elapsed > m_Duration + MAX_TIMING_ERROR && pPlayer->GetCombatMode() == ECombatMode::BATTING && m_CurrentProjectile)
+		{
+			m_CurrentProjectile->Explode();
+			m_CurrentProjectile = nullptr;
+		}
+	}	
+}
+
+EParryJudgementType UBattingModeWidget::JudgeScore(float _Score)
+{
+	constexpr float SCORE_BAD_STANDARD = 0.2f;
+	constexpr float SCORE_GOOD_STANDARD = 0.5f;
+	constexpr float SCORE_SICK_STANDARD = 0.8f;
+
+	if (_Score < SCORE_BAD_STANDARD)
+	{
+		return EParryJudgementType::SHIT;
+	}
+	else if (_Score < SCORE_GOOD_STANDARD)
+	{
+		return EParryJudgementType::BAD;
+	}
+	else if (_Score < SCORE_SICK_STANDARD)
+	{
+		return EParryJudgementType::GOOD;
+	}
+	else
+	{
+		return EParryJudgementType::SICK;
 	}
 }
 
@@ -190,73 +227,79 @@ void UBattingModeWidget::FailedParrying()
 {
 	// 대응되어 있는 투사체를 폭발 시키고, Deregister
 	m_CurrentProjectile->Explode();
-	if (AMyPlayer* pPlayer = Cast<AMyPlayer>(GetOwningPlayerPawn()))
+/*	if (AMyPlayer* pPlayer = Cast<AMyPlayer>(GetOwningPlayerPawn()))
 	{
 		// Exit하면 연출이 부자연스럽다... 뭔가 방법이 필요함.
 		pPlayer->ExitBattingMode();
-	}
+	}*/
 }
 
 void UBattingModeWidget::Impact()
 {
-	// 1. Timing
-	const float MAX_TIMING_ERROR = 0.15f;		// 15ms
-
-	// 예외 상황 : 만약 너무 일찍 휘둘렀다면, 캐릭터의 스턴이라던가 필요할 듯?
 	float timeDiff = m_Duration - m_Elapsed;
+
+	// 1. 너무 일찍 휘두른 경우 - 공 안터짐, 패링 X
 	if (timeDiff > MAX_TIMING_ERROR)
 	{
-		if (AMyPlayer* pPlayer = Cast<AMyPlayer>(GetOwningPlayerPawn()))
-		{
-			// Exit하면 연출이 부자연스럽다... 뭔가 방법이 필요함.
-			pPlayer->ToggleInteraction(EInteractionType::RClick);
+		return;
+	}
+	// 2. 너무 늦게 휘두른 경우 - 공 터짐, 패링 X
+	else if (FMath::Abs(timeDiff) > MAX_TIMING_ERROR)
+	{
+		m_CurrentProjectile->Explode(true);
+		return;
+	}
+	// 3. Parry 성공. 평가값 계산
+	else
+	{
+		float TimingScore = FMath::Clamp(1.f - FMath::Abs(timeDiff) / MAX_TIMING_ERROR, 0.f, 1.f);
+
+		// 2. Position - AimPos와 벗어났는가 가 실패기준임.
+		UCanvasPanelSlot* AimSlot = Cast<UCanvasPanelSlot>(m_AimImg->Slot);
+		const float MAX_POS_ERROR = AimSlot->GetSize().X;
+
+		float diffPos = (m_WarningImg->GetRenderTransform().Translation - m_AimImg->GetRenderTransform().Translation).Length();
+		float PositionScore = FMath::Clamp(1.f - diffPos / MAX_POS_ERROR, 0.f, 1.f);
+
+
+		// 3. Charge
+		constexpr float MAX_CHARGE_DURATION = 2.f;
+		float ChargeScore = FMath::Clamp(m_ChargeElapsed / MAX_CHARGE_DURATION, 0.f, 1.f);
+
+		// 최소 차징 보정 (0.5 ~ 1.2배)
+		float ChargeMultiplier = FMath::Lerp(0.5f, 1.2f, ChargeScore);
+
+		float FinalScore =
+			TimingScore *
+			PositionScore *
+			ChargeMultiplier;
+
+		EParryJudgementType pParryType = JudgeScore(FinalScore);
+
+		UE_LOG(LogTemp, Warning, TEXT("Score TIMING : %f"), TimingScore);
+		UE_LOG(LogTemp, Warning, TEXT("Score POS : %f"), PositionScore);
+		UE_LOG(LogTemp, Warning, TEXT("Score CHARGE : %f"), ChargeScore);
+
+		APlayerController* PC = GetWorld()->GetFirstPlayerController();
+		if (PC == nullptr)
 			return;
-		}
-	}
-
-	float TimingScore = FMath::Clamp(1.f - FMath::Abs(timeDiff) / MAX_TIMING_ERROR, 0.f, 1.f);
-
-	// 2. Position - AimPos와 벗어났는가 가 실패기준임.
-	UCanvasPanelSlot* AimSlot = Cast<UCanvasPanelSlot>(m_AimImg->Slot);
-	const float MAX_POS_ERROR = AimSlot->GetSize().X;
-
-	float diffPos = (m_WarningImg->GetRenderTransform().Translation - m_AimImg->GetRenderTransform().Translation).Length();
-	float PositionScore = FMath::Clamp(1.f - diffPos / MAX_POS_ERROR, 0.f, 1.f);
-
-
-	// 3. Charge
-	const float MAX_CHARGE_DURATION = 2.f;
-	float ChargeScore = FMath::Clamp(m_ChargeElapsed / MAX_CHARGE_DURATION, 0.f, 1.f);
-
-	// 최소 차징 보정 (0.5 ~ 1.2배)
-	float ChargeMultiplier = FMath::Lerp(0.5f, 1.2f, ChargeScore);
-
-	float FinalScore =
-		TimingScore *
-		PositionScore *
-		ChargeMultiplier;
-
-	UE_LOG(LogTemp, Warning, TEXT("Score TIMING : %f"), TimingScore);
-	UE_LOG(LogTemp, Warning, TEXT("Score POS : %f"), PositionScore);
-	UE_LOG(LogTemp, Warning, TEXT("Score CHARGE : %f"), ChargeScore);
-
-
-	AMyPlayer* pPlayer = Cast<AMyPlayer>(GetOwningPlayerPawn());
-
-	// FinalScore에 따라 행동을 결정하기.
-	// 해당 Score가 0이고,  패링 실패, 투사체가 폭발해야 함
-/*	if (FinalScore <= 0.f)
-	{
-		FailedParrying();
-	}
-	else*/
-	{
-		ChangeProjectileAttitude();
-
-		// TEMP : 좀 더 높은 점수에서 Impact 재생하기
-		if (pPlayer)
+		if (AUIManager* pUIMgr = Cast<AUIManager>(PC->GetHUD()))
 		{
-			pPlayer->Parrying();
+			if (UMainHUD* pMainHUD = pUIMgr->GetMainHUD())
+			{
+				pMainHUD->PlaySwingUIAnimation(pParryType);
+			}
+		}
+
+		AMyPlayer* pPlayer = Cast<AMyPlayer>(GetOwningPlayerPawn());
+		{
+			ChangeProjectileAttitude();
+
+			// TEMP : 좀 더 높은 점수에서 Impact 재생하기
+			if (pPlayer)
+			{
+				pPlayer->Parry(pParryType);
+			}
 		}
 	}
 }

@@ -14,6 +14,8 @@
 #include "../Actor/WarningSign.h"
 #include "../Actor/Explosion.h"
 
+#include "GlobalData.h"
+
 // Sets default values
 APitchProjectile::APitchProjectile()
 {
@@ -56,7 +58,8 @@ void APitchProjectile::Tick(float DeltaTime)
 
 	m_WarningSign->SetPercent(m_Elapsed, m_PitchData.Duration);
 
-	if (m_Elapsed >= m_PitchData.Duration)
+	// BattingMode인 경우, 폭발에 대한 책임을 지지 않는다.
+	if (m_Elapsed >= m_PitchData.Duration && !m_IsBattingMode)
 	{
 		if (AMyPlayer* pTargetPlayer = Cast<AMyPlayer>(m_Target))
 		{
@@ -87,6 +90,8 @@ void APitchProjectile::EnterBattingMode()
 	// 아이디어 : m_StartLocation을 현재 위치로 설정.
 	// m_Duration을 m_Duration - m_Elapsed로 설정.
 	// m_Elapsed를 0.f로 설정.
+
+	m_IsBattingMode = true;
 	m_PitchData.Duration -= m_Elapsed;
 
 	if (AMyPlayer* pPlayer = Cast<AMyPlayer>(m_Target))
@@ -125,7 +130,10 @@ void APitchProjectile::EnterBattingMode()
 
 void APitchProjectile::ExitBattingMode()
 {
+	m_IsBattingMode = false;
+
 	m_PitchData.Duration -= m_Elapsed;
+
 	m_Destination = m_WarningSignLocation;
 
 	InitBeforeShoot();
@@ -152,7 +160,7 @@ void APitchProjectile::ChangeAttitude()
 {
 	// 패링되었을 때의 로직
 	// 플레이어 - 적군 1대1 대응 상정
-
+	m_IsBattingMode = false;
 	// SkillUser와 Target 반전
 	InitProjectile(m_Target, m_SkillUser, nullptr);
 
@@ -160,7 +168,7 @@ void APitchProjectile::ChangeAttitude()
 	InitBeforeShoot();
 }
 
-void APitchProjectile::Explode()
+void APitchProjectile::Explode(bool _ForceDamage)
 {
 	FVector SpawnPos = GetActorLocation();
 
@@ -174,7 +182,7 @@ void APitchProjectile::Explode()
 			ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
 
 
-	pExplosion->Init(m_SkillUser, m_Target);
+	pExplosion->Init(m_SkillUser, m_Target, _ForceDamage);
 
 	pExplosion->FinishSpawning(FTransform(FRotator::ZeroRotator, SpawnPos));
 

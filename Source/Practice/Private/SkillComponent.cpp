@@ -206,6 +206,9 @@ void USkillComponent::EndSkill()
 		m_CurSkillData = nullptr;
 	}
 	
+	if (UGameplayStatics::GetGlobalTimeDilation(GetWorld()) < 1.f)
+		UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.0f);
+
 	// 콤보 초기화
 	m_ComboWindow = false;
 	m_CurComboIdx = 0;
