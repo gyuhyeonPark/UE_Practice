@@ -25,8 +25,6 @@ protected:
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 protected:
-/*	void SynchronizeUITransform();*/
-
 	EParryJudgementType JudgeScore(float _Score);
 
 protected:
