@@ -110,7 +110,25 @@ void AWarningSign::Interact(AMyPlayer* _Player)
 	if (_Player->GetCombatMode() == ECombatMode::NORMAL)
 	{
 		_Player->SetInteractionUISprite(nullptr);
-		
+
+		// Player 회전 시키기.
+		FVector MyLocation = _Player->GetActorLocation();
+		FVector TargetLocation = m_OwnerProjectile->GetPitcher()->GetActorLocation();
+
+		FRotator LookAtRot =
+			(TargetLocation - MyLocation).Rotation();
+
+		// 캐릭터가 기울어지지 않도록 Pitch, Roll 제거
+		LookAtRot.Pitch = 0.f;
+		LookAtRot.Roll = 0.f;
+
+		_Player->SetActorRotation(LookAtRot);
+
+		if (_Player->GetController())
+		{
+			_Player->GetController()->SetControlRotation(LookAtRot);
+		}
+
 		// 투사체 또한 BattingMode로 진입하기
 		m_OwnerProjectile->EnterBattingMode();
 	}

@@ -17,3 +17,8 @@ void ULockOnWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
 }
+
+void ULockOnWidget::Play()
+{
+	PlayAnimation(LockOnAnim);
+}

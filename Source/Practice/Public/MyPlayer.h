@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ // Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -153,6 +153,8 @@ public:
 	class UBoxComponent* GetStrikeZone() { return StrikeZone; }
 	class UWidgetComponent* GetBattingModeWidget() { return m_BattingModeWidget; }
 
+	bool IsParrying() const { return m_IsParrying; }
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (DisplayName = "SpringArm"))
 	class USpringArmComponent* m_SpringArm;
@@ -176,8 +178,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pitch")
 	int32 m_MinPitch;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Pitch")
-	int32 m_CurPitch;
+	float m_CameraYaw = 0.f;
+	float m_CameraPitch = -20.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data", meta = (DisplayName = "JumpLockTime"))
 	float m_JumpLockTime;
@@ -253,10 +255,21 @@ protected:
 	float m_EasingStrength;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BattingMode")
+	FVector m_NormalCamOffset;
+
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (DisplayName = "CamPivot"))
+	USceneComponent* CamPivot;
+
+	FRotator m_InitialCamRot;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BattingMode")
 	FVector m_BModeCamOffset;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (DisplayName = "BattingModeWidget"))
 	class UWidgetComponent* m_BattingModeWidget;
+
+	bool m_IsParrying;
 
 protected:
 	UPROPERTY(EditAnywhere)

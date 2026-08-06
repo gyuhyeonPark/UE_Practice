@@ -7,6 +7,18 @@
 #include "../GlobalEnum.h"
 #include "BattingModeWidget.generated.h"
 
+USTRUCT(BlueprintType)
+struct FParryInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere)
+	EParryJudgementType Type = EParryJudgementType::BAD;
+
+	UPROPERTY(EditAnywhere)
+	float Speed = 100.f; // cm/s
+};
+
 /**
  * 
  */
@@ -42,8 +54,12 @@ public:
 
 	void SetChargeElapsed(float _Elapsed) { m_ChargeElapsed = _Elapsed; }
 
-	void ChangeProjectileAttitude();
+	void ChangeProjectileAttitude(EParryJudgementType _Type);
 	void FailedParrying();
+
+	// Lock On UI
+	void ActivateLockOnUI();
+	void DeactivateLockOnUI();
 
 public:
 	void Impact();
@@ -65,6 +81,9 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	class UImage* m_WarningImg;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ParryBallSpeed")
+	TArray<FParryInfo> m_ParryInfo;
 
 protected:
 	float m_Elapsed;

@@ -16,6 +16,9 @@
 
 #include "GlobalData.h"
 
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
+
 // Sets default values
 APitchProjectile::APitchProjectile()
 {
@@ -23,6 +26,11 @@ APitchProjectile::APitchProjectile()
 	PrimaryActorTick.bCanEverTick = true;
 	m_BallMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponMesh"));
 	RootComponent = m_BallMesh;
+
+	m_TrailNiagaraCom = CreateDefaultSubobject<UNiagaraComponent>(TEXT("TrailImpact"));
+	m_TrailNiagaraCom->SetAutoActivate(true);  
+	m_TrailNiagaraCom->SetAllowScalability(true);
+	m_TrailNiagaraCom->SetupAttachment(RootComponent);
 }
 
 // Called when the game starts or when spawned
@@ -46,7 +54,16 @@ void APitchProjectile::BeginPlay()
 
 	m_WarningSign->RegisterProjectile(this);
 
+	m_Duration = m_PitchData.Duration;
+
 	InitBeforeShoot();
+
+	if (m_TrailNiagaraCom && m_HostileTrailEffect)
+	{
+		m_TrailNiagaraCom->SetRelativeLocation(FVector::ZeroVector);
+		m_TrailNiagaraCom->SetAsset(m_HostileTrailEffect.Get());
+		m_TrailNiagaraCom->ReinitializeSystem();
+	}
 }
 
 // Called every frame
@@ -56,21 +73,23 @@ void APitchProjectile::Tick(float DeltaTime)
 
 	m_Elapsed += DeltaTime;
 
-	m_WarningSign->SetPercent(m_Elapsed, m_PitchData.Duration);
+	if (m_WarningSign)
+		m_WarningSign->SetPercent(m_Elapsed, m_Duration);
 
 	// BattingMode인 경우, 폭발에 대한 책임을 지지 않는다.
-	if (m_Elapsed >= m_PitchData.Duration && !m_IsBattingMode)
+	if (m_Elapsed >= m_Duration && !m_IsBattingMode)
 	{
 		if (AMyPlayer* pTargetPlayer = Cast<AMyPlayer>(m_Target))
 		{
-			m_WarningSign->CancleInteract(pTargetPlayer);		// 상호작용 중일 때 Cancle.
+			if (m_WarningSign)
+				m_WarningSign->CancleInteract(pTargetPlayer);		// 상호작용 중일 때 Cancle.
 		}
 		Explode();
 
 		return;
 	}
 	
-	FVector nextPos = m_StartLocation + m_DirVec * m_Elapsed / m_PitchData.Duration * m_Distance;
+	FVector nextPos = m_StartLocation + m_DirVec * m_Elapsed / m_Duration * m_Distance;
 
 	SetActorLocation(nextPos);
 }
@@ -82,6 +101,21 @@ void APitchProjectile::InitProjectile(APawn* _User, APawn* _Target, USkillDataBa
 	m_Skill = _Skill;
 
 	m_Destination = m_WarningSignLocation = m_Target->GetActorLocation();
+
+	// Trail Niagara 설정
+	if (m_TrailNiagaraCom)
+	{
+		if (Cast<AMyPlayer>(m_SkillUser) && m_FriendlyTrailEffect)
+		{
+			m_TrailNiagaraCom->SetAsset(m_FriendlyTrailEffect.Get());
+			m_TrailNiagaraCom->ReinitializeSystem();
+		}
+		else if (m_HostileTrailEffect)
+		{
+			m_TrailNiagaraCom->SetAsset(m_HostileTrailEffect.Get());
+			m_TrailNiagaraCom->ReinitializeSystem();
+		}
+	}
 }
 
 void APitchProjectile::EnterBattingMode()
@@ -92,7 +126,7 @@ void APitchProjectile::EnterBattingMode()
 	// m_Elapsed를 0.f로 설정.
 
 	m_IsBattingMode = true;
-	m_PitchData.Duration -= m_Elapsed;
+	m_Duration -= m_Elapsed;
 
 	if (AMyPlayer* pPlayer = Cast<AMyPlayer>(m_Target))
 	{
@@ -113,7 +147,7 @@ void APitchProjectile::EnterBattingMode()
 			InitBeforeShoot();
 
 			// 2. 도착 지점 표시 Delegate 등록
-			pBModeWidget->SetWarningDelegate(this, m_PitchData.Duration);
+			pBModeWidget->SetWarningDelegate(this, m_Duration);
 
 			// 3. 도착 시간 정보를 BattingMode에게 전달.
 
@@ -125,21 +159,23 @@ void APitchProjectile::EnterBattingMode()
 		&APitchProjectile::BroadCastWarningPosFunc);
 
 	// Warning Sign은 안보이게 처리.
-	m_WarningSign->SetActorHiddenInGame(true);
+	if (m_WarningSign)
+		m_WarningSign->SetActorHiddenInGame(true);
 }
 
 void APitchProjectile::ExitBattingMode()
 {
 	m_IsBattingMode = false;
 
-	m_PitchData.Duration -= m_Elapsed;
+	m_Duration -= m_Elapsed;
 
 	m_Destination = m_WarningSignLocation;
 
 	InitBeforeShoot();
 
 	// Warning Sign은 다시 보이게 처리.
-	m_WarningSign->SetActorHiddenInGame(false);
+	if (m_WarningSign)
+		m_WarningSign->SetActorHiddenInGame(false);
 }
 
 void APitchProjectile::BroadCastWarningPosFunc()
@@ -156,16 +192,23 @@ void APitchProjectile::BroadCastWarningPosFunc()
 	}
 }
 
-void APitchProjectile::ChangeAttitude()
+void APitchProjectile::ChangeAttitude(float _Speed)
 {
 	// 패링되었을 때의 로직
 	// 플레이어 - 적군 1대1 대응 상정
 	m_IsBattingMode = false;
+
+	m_WarningSign->Destroy();
+	m_WarningSign = nullptr;
+
 	// SkillUser와 Target 반전
 	InitProjectile(m_Target, m_SkillUser, nullptr);
-
+	
 	// 멤버 초기화
 	InitBeforeShoot();
+
+	// 속도를 통해 m_Duration을 갱신해준다.
+	m_Duration = m_Distance / _Speed;
 }
 
 void APitchProjectile::Explode(bool _ForceDamage)
@@ -186,7 +229,8 @@ void APitchProjectile::Explode(bool _ForceDamage)
 
 	pExplosion->FinishSpawning(FTransform(FRotator::ZeroRotator, SpawnPos));
 
-	m_WarningSign->Destroy();
+	if (m_WarningSign)
+		m_WarningSign->Destroy();
 	Destroy();
 }
 

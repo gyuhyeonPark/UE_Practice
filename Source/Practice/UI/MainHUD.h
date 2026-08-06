@@ -32,11 +32,14 @@ public:
 	class UInvenWidget* GetInventoryWidget() const { return InvenWidget; }
 
 	void PlaySwingUIAnimation(EParryJudgementType _Type);
-	void PlayLockOnUIAnimation(EParryJudgementType _Type);
-
+	void PlayLockOnUIAnimation(AActor* _TargetUnit);
+	void HideLockOnUI();
 /*	class UBattingModeWidget* GetBattingModeWidget() const { return BattingModeWidget; }*/
 
 protected:
+	UPROPERTY(meta = (BindWidget))
+	class UCanvasPanel* RootCanvas;
+
 	UPROPERTY(meta = (BindWidget))
 	class UPlayerBar* PlayerBarWidget;
 
@@ -51,4 +54,7 @@ protected:
 
 /*	UPROPERTY(meta = (BindWidget))
 	class UBattingModeWidget* BattingModeWidget;*/
+protected:
+	bool bLockOnActive = false;
+	TWeakObjectPtr<AActor> LockOnTarget;
 };

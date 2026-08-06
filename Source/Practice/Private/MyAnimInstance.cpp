@@ -21,11 +21,17 @@ void UMyAnimInstance::AnimNotify_SkillEnd()
 {
 	if (m_Character->HasAuthority() || m_Character->IsLocallyControlled())
 		m_Character->GetSkillComponent()->EndSkill();
+
+	m_Character->SwitchWeaponHand(true);
+
 }
 
 void UMyAnimInstance::AnimNotify_BatImpact()
 {
 	m_Character->BatImpact();
+
+	m_Character->SwitchWeaponHand(false);
+
 /*	// 2. 패링 성공 시 로직
 	if (IsParrySucceeded && m_Character->GetCombatMode() == ECombatMode::BATTING)
 	{

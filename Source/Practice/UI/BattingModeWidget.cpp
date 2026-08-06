@@ -28,6 +28,12 @@ void UBattingModeWidget::NativeOnInitialized()
 		pPlayer->m_UpdateAimPos.AddDynamic(this, &UBattingModeWidget::UpdateAimPos_Alt);
 		pPlayer->m_InitAimPos.AddDynamic(this, &UBattingModeWidget::InitAimPos_Alt);
 	}
+
+	for (int32 i = 0; i < (int32)EParryJudgementType::END; ++i)
+	{
+		m_ParryInfo.Add(FParryInfo{ (EParryJudgementType)i, });
+	}
+
 }
 
 void UBattingModeWidget::NativeConstruct()
@@ -79,7 +85,7 @@ void UBattingModeWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
 	{
 		if (m_Elapsed > m_Duration + MAX_TIMING_ERROR && pPlayer->GetCombatMode() == ECombatMode::BATTING && m_CurrentProjectile)
 		{
-			m_CurrentProjectile->Explode();
+			m_CurrentProjectile->Explode(true);
 			m_CurrentProjectile = nullptr;
 		}
 	}	
@@ -217,9 +223,9 @@ void UBattingModeWidget::SetWarningDelegate(APitchProjectile* _Projectile, float
 	WarningSlot->SetSize(m_StartWarningSize);
 }
 
-void UBattingModeWidget::ChangeProjectileAttitude()
+void UBattingModeWidget::ChangeProjectileAttitude(EParryJudgementType _Type)
 {
-	m_CurrentProjectile->ChangeAttitude();
+	m_CurrentProjectile->ChangeAttitude(m_ParryInfo[(int32)_Type].Speed);
 	m_CurrentProjectile = nullptr;
 }
 
@@ -234,6 +240,46 @@ void UBattingModeWidget::FailedParrying()
 	}*/
 }
 
+void UBattingModeWidget::ActivateLockOnUI()
+{
+	// currentProjectile의 SkillUser를 바라보도록 LockOnUI 설정한다.
+	// 캐릭터가 바라보게 해주는 것도 잊지 말자
+	APawn* pPitcher = m_CurrentProjectile->GetPitcher();
+	AMyPlayer* pPlayer = Cast<AMyPlayer>(GetOwningPlayerPawn());
+
+	if (pPitcher == pPlayer)
+		return;
+
+	if (pPitcher)
+	{
+		// 2. MainHUD 쪽 LockOnUI를 활성화
+		APlayerController* PC = GetWorld()->GetFirstPlayerController();
+		if (PC == nullptr)
+			return;
+		if (AUIManager* pUIMgr = Cast<AUIManager>(PC->GetHUD()))
+		{
+			if (UMainHUD* pMainHUD = pUIMgr->GetMainHUD())
+			{
+				pMainHUD->PlayLockOnUIAnimation(pPitcher);
+			}
+		}
+	}
+}
+
+void UBattingModeWidget::DeactivateLockOnUI()
+{
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	if (PC == nullptr)
+		return;
+	if (AUIManager* pUIMgr = Cast<AUIManager>(PC->GetHUD()))
+	{
+		if (UMainHUD* pMainHUD = pUIMgr->GetMainHUD())
+		{
+			pMainHUD->HideLockOnUI();
+		}
+	}
+}
+
 void UBattingModeWidget::Impact()
 {
 	float timeDiff = m_Duration - m_Elapsed;
@@ -241,12 +287,21 @@ void UBattingModeWidget::Impact()
 	// 1. 너무 일찍 휘두른 경우 - 공 안터짐, 패링 X
 	if (timeDiff > MAX_TIMING_ERROR)
 	{
+/*		if (m_CurrentProjectile)
+		{
+			m_CurrentProjectile->Explode(true);
+			m_CurrentProjectile = nullptr;
+		}*/
 		return;
 	}
 	// 2. 너무 늦게 휘두른 경우 - 공 터짐, 패링 X
 	else if (FMath::Abs(timeDiff) > MAX_TIMING_ERROR)
 	{
-		m_CurrentProjectile->Explode(true);
+		if (m_CurrentProjectile)
+		{
+			m_CurrentProjectile->Explode(true);
+			m_CurrentProjectile = nullptr;
+		}
 		return;
 	}
 	// 3. Parry 성공. 평가값 계산
@@ -293,7 +348,7 @@ void UBattingModeWidget::Impact()
 
 		AMyPlayer* pPlayer = Cast<AMyPlayer>(GetOwningPlayerPawn());
 		{
-			ChangeProjectileAttitude();
+			ChangeProjectileAttitude(pParryType);
 
 			// TEMP : 좀 더 높은 점수에서 Impact 재생하기
 			if (pPlayer)

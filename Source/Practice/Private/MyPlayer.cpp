@@ -53,15 +53,30 @@ AMyPlayer::AMyPlayer()
 	// SpringArm Component 추가
 	m_SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	m_SpringArm->SetupAttachment(RootComponent);
+
+	// Controller Rotation을 SpringArm만 사용
 	m_SpringArm->bUsePawnControlRotation = true;
-/*	bUseControllerRotationPitch = true;*/
 	m_SpringArm->bDoCollisionTest = false;
 
-	// 카메라 컴포넌트 추가
+	// Character가 회전해도 SpringArm은 영향을 받지 않음
+	m_SpringArm->bInheritYaw = false;
+	m_SpringArm->bInheritPitch = false;
+	m_SpringArm->bInheritRoll = false;
+
 	m_Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("MainCamera"));
-	m_Camera->SetupAttachment(m_SpringArm);
+/*	m_Camera->SetupAttachment(m_SpringArm);*/
 	m_Camera->bUsePawnControlRotation = false;
 
+	bUseControllerRotationYaw = false;
+	bUseControllerRotationPitch = false;
+	bUseControllerRotationRoll = false;
+
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+
+	CamPivot = CreateDefaultSubobject<USceneComponent>(TEXT("CamPivot"));
+	CamPivot->SetupAttachment(m_SpringArm);
+	m_Camera->SetupAttachment(CamPivot);
+	
 	// SkillComponent 추가하기
 	m_SkillCom = CreateDefaultSubobject<UPlayerSkillComponent>(TEXT("PlayerSkillComponent"));
 	m_StatCom = CreateDefaultSubobject<UPlayerStatComponent>(TEXT("StatComponent"));
@@ -141,10 +156,12 @@ void AMyPlayer::BeginPlay()
 		m_SkillCom->SetWeapon(pWeapon);
 	}
 
-	InitPostProcessMaterial();
+	m_NormalFOV = m_Camera->FieldOfView;
+	m_NormalArmLength = m_SpringArm->TargetArmLength;
+	m_NormalCamOffset = m_SpringArm->SocketOffset;
+	m_InitialCamRot = CamPivot->GetRelativeRotation();
 
-	m_Camera->SetFieldOfView(m_NormalFOV);
-	m_SpringArm->TargetArmLength = m_NormalArmLength;
+	InitPostProcessMaterial();
 
 	StrikeZone->SetHiddenInGame(false);        // 게임 중에도 표시
 	StrikeZone->SetVisibility(true);
@@ -204,7 +221,7 @@ void AMyPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	// Batting Mode 바인딩
 	if (const UInputAction* pAction = m_InputContainer->FindIAByName(TEXT("IA_RightClick")))
 	{
-		pEIC->BindAction(pAction, ETriggerEvent::Triggered, this, &AMyPlayer::RightClickInteraction);
+		pEIC->BindAction(pAction, ETriggerEvent::Completed, this, &AMyPlayer::RightClickInteraction);
 	}
 
 	// 스킬 컴포넌트가 담당하는 키 입력에 대해서는 해당 클래스에 바인딩 시킨다.
@@ -213,15 +230,36 @@ void AMyPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void AMyPlayer::MoveAction(const FInputActionValue& _Value)
 {
-	FVector2D Input = _Value.Get<FVector2D>();
+	const FVector2D Input = _Value.Get<FVector2D>();
 
-	FVector vF = GetActorForwardVector();
-	FVector vR = GetActorRightVector();
+	if (Input.IsNearlyZero())
+		return;
 
-	AddMovementInput(vF, Input.X);
-	AddMovementInput(vR, Input.Y);
+	const FRotator ControlRot = GetControlRotation();
+	const FRotator YawRot(0.f, ControlRot.Yaw, 0.f);
 
-	//UE_LOG(LogTemp, Warning, TEXT("MoveAction Call"));
+	const FVector Forward = FRotationMatrix(YawRot).GetUnitAxis(EAxis::X);
+	const FVector Right = FRotationMatrix(YawRot).GetUnitAxis(EAxis::Y);
+
+	AddMovementInput(Forward, Input.Y);
+	AddMovementInput(Right, Input.X);
+
+	FVector MoveDir = Forward * Input.Y + Right * Input.X;
+
+	if (!MoveDir.IsNearlyZero())
+	{
+		MoveDir.Normalize();
+
+		const FRotator TargetRot = MoveDir.Rotation();
+
+		const FRotator NewRot = FMath::RInterpTo(
+			GetActorRotation(),
+			TargetRot,
+			GetWorld()->GetDeltaSeconds(),
+			12.f);
+
+		SetActorRotation(NewRot);
+	}
 }
 
 void AMyPlayer::JumpAction(const FInputActionValue& _Value)
@@ -240,45 +278,15 @@ void AMyPlayer::LookAction(const FInputActionValue& _Value)
 {
 	if (m_CombatMode == ECombatMode::NORMAL)
 	{
-		// 입력 값
 		const FVector2D Input = _Value.Get<FVector2D>();
 
-		AController* pController = GetController();
+		APlayerController* PC = Cast<APlayerController>(GetController());
 
-		if (pController == nullptr)
-		{
+		if (!PC)
 			return;
-		}
 
-		// 현재 Control Rotation
-		FRotator ControlRot = pController->GetControlRotation();
-
-		// Pitch 정규화
-		float Pitch = FRotator::NormalizeAxis(ControlRot.Pitch);
-
-		// 회전 누적
-		ControlRot.Yaw += Input.X * m_RotateScale;
-
-		Pitch -= Input.Y * m_RotateScale;
-
-		// Clamp
-		Pitch = FMath::Clamp(
-			Pitch,
-			m_MinPitch,
-			m_MaxPitch
-		);
-
-		// 적용
-		ControlRot.Pitch = Pitch;
-
-		// Roll 제거
-		ControlRot.Roll = 0.f;
-
-		// 최종 반영
-		pController->SetControlRotation(ControlRot);
-
-		// 필요하다면 저장
-		m_CurPitch = Pitch;
+		AddControllerYawInput(Input.X * m_RotateScale);
+/*		AddControllerPitchInput(Input.Y * m_RotateScale);*/
 	}
 	else if (m_CombatMode == ECombatMode::BATTING)
 	{
@@ -321,6 +329,8 @@ void AMyPlayer::BattingModeToggle()
 
 void AMyPlayer::EnterBattingMode()
 {
+	UE_LOG(LogTemp, Warning, TEXT("!!!EnterBattingMode!!!"));
+
 	m_CombatMode = ECombatMode::BATTING;
 	SetMoveScale(0.f);
 
@@ -328,6 +338,10 @@ void AMyPlayer::EnterBattingMode()
 
 	m_SkillCom->SetSkillSlotBattingMode();
 
+	if (UBattingModeWidget* pBModeWidget = Cast<UBattingModeWidget>(m_BattingModeWidget->GetUserWidgetObject()))
+	{
+		pBModeWidget->ActivateLockOnUI();
+	}
 	m_BattingModeWidget->SetVisibility(true);
 
 	// 카메라 설정 및 UI 생성
@@ -377,15 +391,14 @@ void AMyPlayer::ExitBattingMode()
 
 	m_SkillCom->SetSkillSlotNormal();
 	
-/*	if (m_IsParrying)
-	{
-		m_IsParrying = false;
-		UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.0f);
-	}*/
-
-	SwitchWeaponHand(true);
+	m_IsParrying = false;
 
 	m_SkillCom->EndSkill();
+
+	if (UBattingModeWidget* pBModeWidget = Cast<UBattingModeWidget>(m_BattingModeWidget->GetUserWidgetObject()))
+	{
+		pBModeWidget->DeactivateLockOnUI();
+	}
 
 	m_BattingModeWidget->SetVisibility(false);
 
@@ -407,6 +420,7 @@ void AMyPlayer::SwitchWeaponHand(bool _IsRight)
 
 void AMyPlayer::RightClickInteraction(const FInputActionValue& _Value)
 {
+	UE_LOG(LogTemp, Warning, TEXT("!!!RClickFunc Called!!!"));
 	ToggleInteraction(EInteractionType::RClick);
 }
 
@@ -639,20 +653,27 @@ void AMyPlayer::BattingModeZoom()
 		// SpringArm Offset
 		FVector pCamOffset = {};
 
-		curAlpha = FMath::Lerp(0.f, m_BModeCamOffset.Y, EaseRatio);
+		curAlpha = FMath::Lerp(m_NormalCamOffset.Y, m_BModeCamOffset.Y, EaseRatio);
 		pCamOffset.Y = curAlpha;
 
-		curAlpha = FMath::Lerp(0.f, m_BModeCamOffset.Z, EaseRatio);
+		curAlpha = FMath::Lerp(m_NormalCamOffset.Z, m_BModeCamOffset.Z, EaseRatio);
 		pCamOffset.Z = curAlpha;
 		
 		m_SpringArm->SocketOffset = pCamOffset;
 	
-		// Pitch 0으로 보간.
+/*		// Pitch 0으로 보간.
 		FRotator ControlRot = GetController()->GetControlRotation();
 		curAlpha = FMath::Lerp(m_BModePitch, 0.f, EaseRatio);
 		ControlRot.Pitch = curAlpha;
 
-		GetController()->SetControlRotation(ControlRot);
+		GetController()->SetControlRotation(ControlRot);*/
+		// CameraPivot Rotation
+		const FRotator CamRot = FMath::Lerp(
+			m_InitialCamRot,
+			FRotator::ZeroRotator,
+			EaseRatio);
+
+		CamPivot->SetRelativeRotation(CamRot);
 	}
 }
 
@@ -683,15 +704,21 @@ void AMyPlayer::BattingModeUnzoom()
 		// SpringArm Offset
 		FVector pCamOffset = {};
 
-		curAlpha = FMath::Lerp(m_BModeCamOffset.Y, 0.f, EaseRatio);
+		curAlpha = FMath::Lerp(m_BModeCamOffset.Y, m_NormalCamOffset.Y, EaseRatio);
 		pCamOffset.Y = curAlpha;
 
-		curAlpha = FMath::Lerp(m_BModeCamOffset.Z, 0.f, EaseRatio);
+		curAlpha = FMath::Lerp(m_BModeCamOffset.Z, m_NormalCamOffset.Z, EaseRatio);
 		pCamOffset.Z = curAlpha;
 
 		m_SpringArm->SocketOffset = pCamOffset;
 
-		// Unzoom에선 Pitch 조절 X
+		// CameraPivot Rotation
+		const FRotator CamRot = FMath::Lerp(
+			FRotator::ZeroRotator,
+			m_InitialCamRot,
+			EaseRatio);
+
+		CamPivot->SetRelativeRotation(CamRot);
 	}
 }
 
@@ -713,7 +740,7 @@ void AMyPlayer::SendChargeElapsed(float _Elapsed) const
 
 void AMyPlayer::Parry(EParryJudgementType _ParryType)
 {
-	//m_IsParrying = true;
+	m_IsParrying = true;
 	m_SkillCom->ParryingFunc(_ParryType);
 }
 

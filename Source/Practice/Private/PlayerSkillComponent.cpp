@@ -132,6 +132,11 @@ void UPlayerSkillComponent::ParryingFunc(EParryJudgementType _ParryType)
 		UGameplayStatics::SetGlobalTimeDilation(GetWorld(), m_SlowRatio);
 	}
 
+	if (AMyPlayer* pPlayer = Cast<AMyPlayer>(GetOwner()))
+	{
+		pPlayer->SwitchWeaponHand(false);
+	}
+
 	if (m_ParryingNiagaraCom && m_ParryingEffects[(int32)_ParryType].EffectData != nullptr)
 	{
 		m_ParryingNiagaraCom->DeactivateImmediate();

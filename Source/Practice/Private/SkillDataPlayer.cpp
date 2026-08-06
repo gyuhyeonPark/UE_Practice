@@ -60,7 +60,7 @@ void USkillDataPlayer::OnEndSkill_Implementation(APawn* _SkillUser, USkillCompon
 		pPlayer->SetMoveScale(1.f);
 		pPlayer->SetRotateScale(1.f);
 
-		if (pPlayer->GetCombatMode() == ECombatMode::BATTING)
+		if (pPlayer->GetCombatMode() == ECombatMode::BATTING && pPlayer->IsParrying())
 			pPlayer->ExitBattingMode();
 	}
 }

@@ -60,9 +60,11 @@ public:
 
 	void BroadCastWarningPosFunc();
 
-	void ChangeAttitude();
+	void ChangeAttitude(float _Speed);
 
 	void Explode(bool _ForceDamage = false);
+
+	APawn* GetPitcher() const { return m_SkillUser; }
 
 protected:
 	void InitBeforeShoot();
@@ -94,6 +96,7 @@ protected:
 	TSubclassOf<class UBallWarningWidget> m_WidgetClass;
 
 	float m_Elapsed;
+	float m_Duration;
 
 	FVector m_StartLocation;
 	FVector m_DirVec;
@@ -109,6 +112,15 @@ protected:
 	TSubclassOf<class AExplosion> ExplosionClass;		// 생성시킬 투사체의 UCLASS 정보를 가리킴
 
 	bool m_IsBattingMode;
+
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	class UNiagaraComponent* m_TrailNiagaraCom;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TrailEffect")
+	TSoftObjectPtr<class UNiagaraSystem> m_HostileTrailEffect;		// 생성시킬 투사체의 UCLASS 정보를 가리킴
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TrailEffect")
+	TSoftObjectPtr<class UNiagaraSystem> m_FriendlyTrailEffect;		// 생성시킬 투사체의 UCLASS 정보를 가리킴
 
 public:
 	FInitWarningPos m_InitWarningPos;
