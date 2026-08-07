@@ -12,7 +12,7 @@
 
 // Sets default values
 AExplosion::AExplosion()
-	: m_Damage(10.f)
+	: m_Damage(1000.f)
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;

@@ -244,21 +244,25 @@ void AMyPlayer::MoveAction(const FInputActionValue& _Value)
 	AddMovementInput(Forward, Input.Y);
 	AddMovementInput(Right, Input.X);
 
-	FVector MoveDir = Forward * Input.Y + Right * Input.X;
 
-	if (!MoveDir.IsNearlyZero())
+	if (!m_IsStun)
 	{
-		MoveDir.Normalize();
+		FVector MoveDir = Forward * Input.Y + Right * Input.X;
 
-		const FRotator TargetRot = MoveDir.Rotation();
+		if (!MoveDir.IsNearlyZero())
+		{
+			MoveDir.Normalize();
 
-		const FRotator NewRot = FMath::RInterpTo(
-			GetActorRotation(),
-			TargetRot,
-			GetWorld()->GetDeltaSeconds(),
-			12.f);
+			const FRotator TargetRot = MoveDir.Rotation();
 
-		SetActorRotation(NewRot);
+			const FRotator NewRot = FMath::RInterpTo(
+				GetActorRotation(),
+				TargetRot,
+				GetWorld()->GetDeltaSeconds(),
+				12.f);
+
+			SetActorRotation(NewRot);
+		}
 	}
 }
 
