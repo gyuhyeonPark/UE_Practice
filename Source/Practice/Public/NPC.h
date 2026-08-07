@@ -49,9 +49,14 @@ public:
 	void HideHPBar();
 	void ShowHPBar();
 
+	bool IsDead();
 
 	bool IsStun() { return m_IsStun; } const
 	void EndStun() { m_IsStun = false; }
+
+protected:
+	void StartPaperburn();
+	void UpdatePaperburn();
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "Info", meta = (DisplayName = "TeamID"))
@@ -84,4 +89,15 @@ protected:
 	UAnimMontage* m_StunMontage;	// 스킬 모션
 
 	bool m_IsStun;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Paperburn")
+	class UMaterialInterface* m_PaperburnMtrl;
+
+	UPROPERTY()
+	UMaterialInstanceDynamic* m_PaperburnMID;
+
+	float m_PaperburnElapsed = 0.f;
+	float m_PaperburnDuration = 1.f;
+
+	FTimerHandle m_PaperburnTimerHandle;
 };

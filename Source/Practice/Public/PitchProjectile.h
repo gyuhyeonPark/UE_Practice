@@ -66,6 +66,8 @@ public:
 
 	APawn* GetPitcher() const { return m_SkillUser; }
 
+	FVector GetDestination() const { return m_Destination; }
+
 protected:
 	void InitBeforeShoot();
 

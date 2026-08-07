@@ -4,6 +4,9 @@
 #include "PitchProjectile.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "MyPlayer.h"
+#include "NPC.h"
+#include "ProjectileManager.h"
+
 #include "Components/Boxcomponent.h"
 #include "Components/WidgetComponent.h"
 #include "../UI/BallWarningWidget.h"
@@ -52,6 +55,8 @@ void APitchProjectile::BeginPlay()
 		FActorSpawnParameters{}
 	);
 
+
+
 	m_WarningSign->RegisterProjectile(this);
 
 	m_Duration = m_PitchData.Duration;
@@ -79,11 +84,11 @@ void APitchProjectile::Tick(float DeltaTime)
 	// BattingMode인 경우, 폭발에 대한 책임을 지지 않는다.
 	if (m_Elapsed >= m_Duration && !m_IsBattingMode)
 	{
-		if (AMyPlayer* pTargetPlayer = Cast<AMyPlayer>(m_Target))
+/*		if (AMyPlayer* pTargetPlayer = Cast<AMyPlayer>(m_Target))
 		{
 			if (m_WarningSign)
 				m_WarningSign->CancleInteract(pTargetPlayer);		// 상호작용 중일 때 Cancle.
-		}
+		}*/
 		Explode();
 
 		return;
@@ -100,7 +105,15 @@ void APitchProjectile::InitProjectile(APawn* _User, APawn* _Target, USkillDataBa
 	m_Target = _Target;
 	m_Skill = _Skill;
 
-	m_Destination = m_WarningSignLocation = m_Target->GetActorLocation();
+	if (Cast<ANPC>(m_SkillUser) != nullptr)
+	{
+		if (UProjectileManager* pMgr = GetGameInstance()->GetSubsystem<UProjectileManager>())
+		{
+			m_Destination = m_WarningSignLocation = pMgr->SelectDestination(m_Target->GetActorLocation());
+		}
+	}
+	else if (Cast<AMyPlayer>(m_SkillUser))
+		m_Destination = m_WarningSignLocation = m_Target->GetActorLocation();
 
 	// Trail Niagara 설정
 	if (m_TrailNiagaraCom)
@@ -228,6 +241,11 @@ void APitchProjectile::Explode(bool _ForceDamage)
 	pExplosion->Init(m_SkillUser, m_Target, _ForceDamage);
 
 	pExplosion->FinishSpawning(FTransform(FRotator::ZeroRotator, SpawnPos));
+
+	if (UProjectileManager* pMgr = GetGameInstance()->GetSubsystem<UProjectileManager>())
+	{
+		pMgr->UnregisterProjectileLocation(m_WarningSignLocation);
+	}
 
 	if (m_WarningSign)
 		m_WarningSign->Destroy();

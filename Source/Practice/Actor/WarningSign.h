@@ -29,6 +29,8 @@ public:
 	
 	void SetPercent(float _Elapsed, float _Duration);
 
+	class UBoxComponent* GetRangeBox() { return m_InRangeBox; }
+
 protected:
 	UFUNCTION()
 	void RangeBeginOverlap(UPrimitiveComponent* OverlappedComponent,

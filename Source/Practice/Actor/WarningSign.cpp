@@ -151,6 +151,7 @@ void AWarningSign::Interact(AMyPlayer* _Player)
 
 void AWarningSign::CancleInteract(AMyPlayer* Player)
 {
+	// 조건이 필요함. 
 	Player->ExitBattingMode();
 }
 

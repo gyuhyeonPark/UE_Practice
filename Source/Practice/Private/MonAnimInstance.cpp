@@ -81,4 +81,6 @@ void UMonAnimInstance::NativeUpdateAnimation(float _DT)
 
 	// 월드 시간 누적값 저장
 	m_AccWorldTime = GetWorld()->GetTimeSeconds();
+
+	m_IsDead = m_Character->IsDead();
 }

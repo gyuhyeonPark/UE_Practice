@@ -51,6 +51,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = "Movement")
 	float m_AccWorldTime;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = "Movement")
+	bool m_IsDead;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	class UCharacterMovementComponent* m_MovementComponent;
 

@@ -75,8 +75,12 @@ float ANPC::TakeDamage(float _Damage, FDamageEvent const& _DamageEvent, AControl
 		CurHP -= fDamage * GroggyRate;
 
 		if (CurHP < 0.f)
+		{
 			CurHP = 0.f;
-
+			GetMesh()->GetAnimInstance()->StopAllMontages(0.f);
+			StartPaperburn();
+		}
+			
 		m_NPCStatCom->SetStat(TEXT("CurHP"), CurHP);
 
 		if (m_OnTakeDamage.IsBound())
@@ -185,5 +189,64 @@ void ANPC::ShowHPBar()
 		m_WidgetCom->SetVisibility(true);
 
 	GetWorldTimerManager().SetTimer(m_HPBarVisibleHandle, this, &ANPC::HideHPBar, 3.f, false);
+}
+
+bool ANPC::IsDead()
+{
+	return m_NPCStatCom->GetStat(TEXT("CurHP")) <= 0.f;
+}
+
+void ANPC::StartPaperburn()
+{
+	if (!m_PaperburnMtrl || !GetMesh())
+		return;
+
+	m_PaperburnMID = UMaterialInstanceDynamic::Create(m_PaperburnMtrl, this);
+
+	if (!m_PaperburnMID)
+		return;
+
+	m_PaperburnMID->SetScalarParameterValue(TEXT("Intense"), 0.f);
+
+	// Mesh의 모든 Material에 적용
+	for (int32 i = 0; i < GetMesh()->GetNumMaterials(); ++i)
+	{
+		GetMesh()->SetMaterial(i, m_PaperburnMID);
+	}
+
+	m_PaperburnElapsed = 0.f;
+
+	GetWorldTimerManager().SetTimer(
+		m_PaperburnTimerHandle,
+		this,
+		&ANPC::UpdatePaperburn,
+		0.02f,
+		true
+	);
+}
+
+void ANPC::UpdatePaperburn()
+{
+	m_PaperburnElapsed += 0.01f;
+
+	const float Alpha = FMath::Clamp(
+		m_PaperburnElapsed / m_PaperburnDuration,
+		0.f,
+		1.f
+	);
+
+	if (m_PaperburnMID)
+	{
+		m_PaperburnMID->SetScalarParameterValue(
+			TEXT("Intense"),
+			Alpha
+		);
+	}
+
+	if (Alpha >= 1.f)
+	{
+		GetWorldTimerManager().ClearTimer(m_PaperburnTimerHandle);
+		Destroy();
+	}
 }
 
