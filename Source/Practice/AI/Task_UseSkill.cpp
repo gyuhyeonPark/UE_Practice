@@ -11,7 +11,7 @@
 
 UTask_UseSkill::UTask_UseSkill()
 {
-	// Task를 1개로 돌려쓰는 구조가 아니라, 사용하는 각 컨트롤러마다 1 객체씩 부여
+	// true일 시, Task를 1개로 돌려쓰는 구조가 아니라, 사용하는 각 컨트롤러마다 1 객체씩 부여
 	// 이러면 Task의 멤버변수를 활용해도 문제 없음.
 	bCreateNodeInstance = false;
 	

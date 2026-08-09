@@ -16,6 +16,7 @@
 #include "Engine/DamageEvents.h"
 #include "GlobalData.h"
 #include "../Item/Weapon/Weapon.h"
+#include "../AI/EnemyCombatManager.h"
 
 // Sets default values
 ANPC::ANPC()
@@ -103,6 +104,13 @@ float ANPC::TakeDamage(float _Damage, FDamageEvent const& _DamageEvent, AControl
 			GetMesh()->GetAnimInstance()->StopAllMontages(0.3f);
 
 			StartPaperburn();
+
+			UEnemyCombatManager* Manager = GetGameInstance()->GetSubsystem<UEnemyCombatManager>();
+			if (Manager)
+			{
+				Manager->ReleaseAttackSlot(this);
+			}
+
 			return 0.f;
 		}
 	}

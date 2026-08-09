@@ -100,12 +100,14 @@ void UStatComponent::InitStatFromStruct(UScriptStruct* _InStruct, const void* _S
 	}
 }
 
+#if WITH_EDITOR
 void UStatComponent::PostEditChangeProperty(FPropertyChangedEvent& _Event)
 {
 	Super::PostEditChangeProperty(_Event);
 
 	InitStat();
 }
+#endif
 
 void UStatComponent::AddStat(FName _StatName, float _Amount)
 {
