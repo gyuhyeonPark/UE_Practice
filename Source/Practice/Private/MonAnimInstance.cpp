@@ -18,6 +18,14 @@ void UMonAnimInstance::AnimNotify_SkillEnd()
 {
 	if (m_Character->HasAuthority() || m_Character->IsLocallyControlled())
 		m_Character->GetSkillComponent()->EndSkill();
+
+	m_Character->SwitchWeaponHand(true);
+}
+
+void UMonAnimInstance::AnimNotify_BatImpact()
+{
+	// 손 바꾸기
+	m_Character->SwitchWeaponHand(false);
 }
 
 void UMonAnimInstance::AnimNotify_Pitch()

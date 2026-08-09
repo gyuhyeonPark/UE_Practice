@@ -22,6 +22,9 @@ public:
 	void AnimNotify_SkillEnd();
 
 	UFUNCTION()
+	void AnimNotify_BatImpact();		// BatMode -> LeftClick시 커서 위치에 특정 행동을 하도록 한다...?
+
+	UFUNCTION()
 	void AnimNotify_Pitch();
 
 	UFUNCTION()

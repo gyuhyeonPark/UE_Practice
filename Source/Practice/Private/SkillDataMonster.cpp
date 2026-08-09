@@ -34,6 +34,8 @@ void USkillDataMonster::OnExecuteSkill_Implementation(APawn* _SkillUser, USkillC
 void USkillDataMonster::OnEndSkill_Implementation(APawn* _SkillUser, USkillComponent* _SkillCom)
 {
 	AMonster* pMonster = Cast<AMonster>(_SkillUser);
-
+	// 몽타주 재생
+	if (pMonster->GetMesh()->GetAnimInstance())
+		pMonster->GetMesh()->GetAnimInstance()->Montage_Stop(0.5f);
 }
 

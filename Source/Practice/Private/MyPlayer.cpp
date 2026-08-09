@@ -230,38 +230,39 @@ void AMyPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void AMyPlayer::MoveAction(const FInputActionValue& _Value)
 {
-	const FVector2D Input = _Value.Get<FVector2D>();
-
-	if (Input.IsNearlyZero())
-		return;
-
-	const FRotator ControlRot = GetControlRotation();
-	const FRotator YawRot(0.f, ControlRot.Yaw, 0.f);
-
-	const FVector Forward = FRotationMatrix(YawRot).GetUnitAxis(EAxis::X);
-	const FVector Right = FRotationMatrix(YawRot).GetUnitAxis(EAxis::Y);
-
-	AddMovementInput(Forward, Input.Y);
-	AddMovementInput(Right, Input.X);
-
-
-	if (!m_IsStun)
+	if (!m_IsStun && (!m_SkillCom->IsSkillUsing() && m_CombatMode == ECombatMode::NORMAL))
 	{
-		FVector MoveDir = Forward * Input.Y + Right * Input.X;
+		const FVector2D Input = _Value.Get<FVector2D>();
 
-		if (!MoveDir.IsNearlyZero())
+		if (Input.IsNearlyZero())
+			return;
+
+		const FRotator ControlRot = GetControlRotation();
+		const FRotator YawRot(0.f, ControlRot.Yaw, 0.f);
+
+		const FVector Forward = FRotationMatrix(YawRot).GetUnitAxis(EAxis::X);
+		const FVector Right = FRotationMatrix(YawRot).GetUnitAxis(EAxis::Y);
+
+		AddMovementInput(Forward, Input.Y);
+		AddMovementInput(Right, Input.X);
+
 		{
-			MoveDir.Normalize();
+			FVector MoveDir = Forward * Input.Y + Right * Input.X;
 
-			const FRotator TargetRot = MoveDir.Rotation();
+			if (!MoveDir.IsNearlyZero())
+			{
+				MoveDir.Normalize();
 
-			const FRotator NewRot = FMath::RInterpTo(
-				GetActorRotation(),
-				TargetRot,
-				GetWorld()->GetDeltaSeconds(),
-				12.f);
+				const FRotator TargetRot = MoveDir.Rotation();
 
-			SetActorRotation(NewRot);
+				const FRotator NewRot = FMath::RInterpTo(
+					GetActorRotation(),
+					TargetRot,
+					GetWorld()->GetDeltaSeconds(),
+					12.f);
+
+				SetActorRotation(NewRot);
+			}
 		}
 	}
 }

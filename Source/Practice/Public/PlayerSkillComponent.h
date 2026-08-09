@@ -41,9 +41,6 @@ public:
 	void ChargeTick();
 	void SwingFunc();
 
-	virtual void SetWeapon(class AWeapon* _Weapon) override;
-	void SwitchWeaponHand(bool _IsRight = true);
-
 	void ParryingFunc(EParryJudgementType _ParryType);
 
 	UAnimMontage* GetBattingMontage() { return m_BattingMontage; }

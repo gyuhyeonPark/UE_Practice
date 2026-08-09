@@ -113,7 +113,7 @@ void APitchProjectile::InitProjectile(APawn* _User, APawn* _Target, USkillDataBa
 		}
 	}
 	else if (Cast<AMyPlayer>(m_SkillUser))
-		m_Destination = m_WarningSignLocation = m_Target->GetActorLocation();
+		m_Destination = m_Target->GetActorLocation();
 
 	// Trail Niagara 설정
 	if (m_TrailNiagaraCom)

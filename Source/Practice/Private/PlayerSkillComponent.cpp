@@ -157,28 +157,3 @@ void UPlayerSkillComponent::CheckAndUseSkill(int32 _SlotIdx, bool _IsBMode)
 
 	UseSkill(_SlotIdx, _IsBMode);
 }
-
-void UPlayerSkillComponent::SetWeapon(AWeapon* _Weapon)
-{
-	USkillComponent::SetWeapon(_Weapon);
-}
-
-void UPlayerSkillComponent::SwitchWeaponHand(bool _IsRight)
-{
-	AMyPlayer* pPlayer = Cast<AMyPlayer>(GetOwner());
-	if (!pPlayer)
-		return;
-
-	if (_IsRight)
-	{
-		m_Weapon->AttachToComponent(pPlayer->GetMesh(),
-			FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-			TEXT("WeaponSock"));
-	}
-	else
-	{
-		m_Weapon->AttachToComponent(pPlayer->GetMesh(),
-			FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-			TEXT("WeaponReleaseSock"));
-	}
-}

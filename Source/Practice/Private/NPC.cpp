@@ -15,6 +15,7 @@
 
 #include "Engine/DamageEvents.h"
 #include "GlobalData.h"
+#include "../Item/Weapon/Weapon.h"
 
 // Sets default values
 ANPC::ANPC()
@@ -34,6 +35,8 @@ ANPC::ANPC()
 
 	// 캡슐 컴포넌트도 충돌체 이기 때문에, 확실하게 보장하기
 	GetCapsuleComponent()->SetCanEverAffectNavigation(false);
+
+	m_PaperburnDuration = 2.f;
 }
 
 // Called when the game starts or when spawned
@@ -43,6 +46,21 @@ void ANPC::BeginPlay()
 
 	if (m_WidgetCom)
 		m_WidgetCom->SetVisibility(false);
+
+	if (weaponClass)
+	{
+		// 무기 생성
+		AWeapon* pWeapon = GetWorld()->SpawnActor<AWeapon>(weaponClass);
+
+		if (pWeapon)
+		{
+			pWeapon->SetOwner(this);
+			pWeapon->AttachToComponent(GetMesh(),
+				FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+				TEXT("WeaponSock"));
+		}
+		m_SkillCom->SetWeapon(pWeapon);
+	}
 }
 
 // Called every frame
@@ -74,10 +92,10 @@ float ANPC::TakeDamage(float _Damage, FDamageEvent const& _DamageEvent, AControl
 
 		CurHP -= fDamage * GroggyRate;
 
-		if (CurHP < 0.f)
+		if (CurHP <= 0.f)
 		{
 			CurHP = 0.f;
-			GetMesh()->GetAnimInstance()->StopAllMontages(0.f);
+			GetMesh()->GetAnimInstance()->StopAllMontages(0.3f);
 			StartPaperburn();
 		}
 			
@@ -196,25 +214,29 @@ bool ANPC::IsDead()
 	return m_NPCStatCom->GetStat(TEXT("CurHP")) <= 0.f;
 }
 
+void ANPC::SwitchWeaponHand(bool _IsRight)
+{
+	m_SkillCom->SwitchWeaponHand(_IsRight);
+}
+
 void ANPC::StartPaperburn()
 {
-	if (!m_PaperburnMtrl || !GetMesh())
+	if (!GetMesh())
 		return;
-
-	m_PaperburnMID = UMaterialInstanceDynamic::Create(m_PaperburnMtrl, this);
-
-	if (!m_PaperburnMID)
-		return;
-
-	m_PaperburnMID->SetScalarParameterValue(TEXT("Intense"), 0.f);
-
-	// Mesh의 모든 Material에 적용
-	for (int32 i = 0; i < GetMesh()->GetNumMaterials(); ++i)
-	{
-		GetMesh()->SetMaterial(i, m_PaperburnMID);
-	}
 
 	m_PaperburnElapsed = 0.f;
+
+	// 각 Material Slot의 기존 Material을 기반으로 MID 생성
+	for (int32 i = 0; i < GetMesh()->GetNumMaterials(); ++i)
+	{
+		UMaterialInstanceDynamic* MID =
+			GetMesh()->CreateDynamicMaterialInstance(i);
+
+		if (!MID)
+			continue;
+
+		MID->SetScalarParameterValue(TEXT("Intense"), 0.f);
+	}
 
 	GetWorldTimerManager().SetTimer(
 		m_PaperburnTimerHandle,
@@ -227,25 +249,36 @@ void ANPC::StartPaperburn()
 
 void ANPC::UpdatePaperburn()
 {
-	m_PaperburnElapsed += 0.01f;
+	if (!GetMesh())
+		return;
 
-	const float Alpha = FMath::Clamp(
+	m_PaperburnElapsed += 0.02f;
+
+	const float Intense = FMath::Clamp(
 		m_PaperburnElapsed / m_PaperburnDuration,
 		0.f,
 		1.f
 	);
 
-	if (m_PaperburnMID)
+	for (int32 i = 0; i < GetMesh()->GetNumMaterials(); ++i)
 	{
-		m_PaperburnMID->SetScalarParameterValue(
+		UMaterialInstanceDynamic* MID =
+			Cast<UMaterialInstanceDynamic>(GetMesh()->GetMaterial(i));
+
+		if (!MID)
+			continue;
+
+		MID->SetScalarParameterValue(
 			TEXT("Intense"),
-			Alpha
+			Intense
 		);
 	}
 
-	if (Alpha >= 1.f)
+	if (Intense >= 1.f)
 	{
 		GetWorldTimerManager().ClearTimer(m_PaperburnTimerHandle);
+		if (weaponClass)
+			m_SkillCom->DestroyWeapon();
 		Destroy();
 	}
 }

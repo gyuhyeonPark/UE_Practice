@@ -374,6 +374,35 @@ void USkillComponent::Pitch()
 	m_CurSkillData->OnPitch(Cast<APawn>(GetOwner()), m_TargetPawn, this);
 }
 
+void USkillComponent::DestroyWeapon()
+{
+	if (m_Weapon)
+		m_Weapon->Destroy();
+}
+
+void USkillComponent::SwitchWeaponHand(bool _IsRight)
+{
+	if (!m_Weapon)
+		return;
+
+	ACharacter* pCharacter = Cast<ACharacter>(GetOwner());
+	if (!pCharacter)
+		return;
+
+	if (_IsRight)
+	{
+		m_Weapon->AttachToComponent(pCharacter->GetMesh(),
+			FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+			TEXT("WeaponSock"));
+	}
+	else
+	{
+		m_Weapon->AttachToComponent(pCharacter->GetMesh(),
+			FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+			TEXT("WeaponReleaseSock"));
+	}
+}
+
 
 void USkillComponent::Multicast_SkillExecute_Implementation(int32 _Slot, int32 _ComboIdx)
 {

@@ -15,10 +15,13 @@ void UANS_HitBox::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBas
 
 	APawn* pSkillUser = Cast<APawn>(MeshComp->GetOwner());
 
-	if (pSkillUser->IsLocallyControlled())
+	pSkillCom->HitBoxOn();
+
+
+/*	if (pSkillUser->IsLocallyControlled())
 	{
 		pSkillCom->HitBoxOn();
-	}
+	}*/
 }
 
 void UANS_HitBox::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float FrameDeltaTime, const FAnimNotifyEventReference& EventReference)
@@ -31,10 +34,7 @@ void UANS_HitBox::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase
 
 	APawn* pSkillUser = Cast<APawn>(MeshComp->GetOwner());
 
-	if (pSkillUser->IsLocallyControlled())
-	{
-		pSkillCom->HitBoxCheck();
-	}
+	pSkillCom->HitBoxCheck();
 }
 
 void UANS_HitBox::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
@@ -46,9 +46,5 @@ void UANS_HitBox::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase*
 		return;
 
 	APawn* pSkillUser = Cast<APawn>(MeshComp->GetOwner());
-
-	if (pSkillUser->IsLocallyControlled())
-	{
-		pSkillCom->HitBoxOff();
-	}
+	pSkillCom->HitBoxOff();
 }

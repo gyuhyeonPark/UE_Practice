@@ -54,6 +54,9 @@ public:
 	bool IsStun() { return m_IsStun; } const
 	void EndStun() { m_IsStun = false; }
 
+	void SwitchWeaponHand(bool _IsRight);
+
+
 protected:
 	void StartPaperburn();
 	void UpdatePaperburn();
@@ -90,14 +93,11 @@ protected:
 
 	bool m_IsStun;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Paperburn")
-	class UMaterialInterface* m_PaperburnMtrl;
-
-	UPROPERTY()
-	UMaterialInstanceDynamic* m_PaperburnMID;
-
 	float m_PaperburnElapsed = 0.f;
-	float m_PaperburnDuration = 1.f;
+	float m_PaperburnDuration = 2.f;
 
 	FTimerHandle m_PaperburnTimerHandle;
+
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<class AWeapon> weaponClass;
 };
