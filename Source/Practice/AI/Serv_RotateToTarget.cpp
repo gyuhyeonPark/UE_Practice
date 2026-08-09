@@ -27,6 +27,12 @@ void UServ_RotateToTarget::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* No
 	if (pMonster == nullptr)
 		return;
 
+	AMonster* pMon = Cast<AMonster>(pMonster);
+	if (pMon == nullptr)
+		return;
+	if (pMon->IsDead())
+		return;
+
 	AActor* pTargetActor =
 		Cast<AActor>(OwnerComp.GetBlackboardComponent()->GetValueAsObject(m_Target.SelectedKeyName));
 	if (pTargetActor == nullptr)

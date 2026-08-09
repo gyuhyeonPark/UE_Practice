@@ -91,19 +91,20 @@ float ANPC::TakeDamage(float _Damage, FDamageEvent const& _DamageEvent, AControl
 		const float GroggyRate = m_IsStun ? 1.5f : 1.f;
 
 		CurHP -= fDamage * GroggyRate;
-
-		if (CurHP <= 0.f)
-		{
-			CurHP = 0.f;
-			GetMesh()->GetAnimInstance()->StopAllMontages(0.3f);
-			StartPaperburn();
-		}
 			
 		m_NPCStatCom->SetStat(TEXT("CurHP"), CurHP);
 
 		if (m_OnTakeDamage.IsBound())
 			m_OnTakeDamage.Broadcast();
 
+		if (CurHP <= 0.f)
+		{
+			CurHP = 0.f;
+			GetMesh()->GetAnimInstance()->StopAllMontages(0.3f);
+
+			StartPaperburn();
+			return 0.f;
+		}
 	}
 
 

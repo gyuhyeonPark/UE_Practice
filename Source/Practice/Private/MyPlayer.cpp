@@ -274,7 +274,7 @@ void AMyPlayer::JumpAction(const FInputActionValue& _Value)
 
 	ChangePlayerState(EPlayerState::JUMP);
 
-	StartIllusion(5.f, 0.2f);
+	//StartIllusion(5.f, 0.2f);
 
 	Super::Jump();
 }
