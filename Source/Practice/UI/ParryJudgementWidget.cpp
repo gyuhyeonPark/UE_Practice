@@ -30,7 +30,7 @@ void UParryJudgementWidget::Play(EParryJudgementType _Type)
 	if (m_ImageSlot[int32(_Type)].ImageData != nullptr)
 	{
 		temp = true;
-		JudgementImg->SetBrushResourceObject(m_ImageSlot[int32(_Type)].ImageData.Get());
+		JudgementImg->SetBrushResourceObject(m_ImageSlot[int32(_Type)].ImageData.LoadSynchronous());
 	}
 
 	if (!temp)

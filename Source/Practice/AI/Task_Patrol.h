@@ -28,15 +28,15 @@ protected:
 		float DeltaSeconds) override;
 
 protected:
-	// Blackboard¿¡¼­ TargetÀ» °¡Á®¿À±â À§ÇÑ Key
+	// Blackboardï¿½ï¿½ï¿½ï¿½ Targetï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Key
 	UPROPERTY(EditAnywhere, Category = "Blackboard")
 	FBlackboardKeySelector m_Target;
 
-	// ÇÃ·¹ÀÌ¾î¿Í À¯ÁöÇÒ °Å¸®
+	// ï¿½Ã·ï¿½ï¿½Ì¾ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Å¸ï¿½
 	UPROPERTY(EditAnywhere, Category = "Patrol")
 	float m_PatrolRadius = 500.f;
 
-	// ÇÑ ¹ø¿¡ È¸ÀüÇÒ °¢µµ
+	// ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ È¸ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	UPROPERTY(EditAnywhere, Category = "Patrol")
 	float m_PatrolAngle = 45.f;
 };

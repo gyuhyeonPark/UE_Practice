@@ -105,12 +105,6 @@ float ANPC::TakeDamage(float _Damage, FDamageEvent const& _DamageEvent, AControl
 
 			StartPaperburn();
 
-			UEnemyCombatManager* Manager = GetGameInstance()->GetSubsystem<UEnemyCombatManager>();
-			if (Manager)
-			{
-				Manager->ReleaseAttackSlot(this);
-			}
-
 			return 0.f;
 		}
 	}
@@ -286,6 +280,11 @@ void ANPC::UpdatePaperburn()
 	if (Intense >= 1.f)
 	{
 		GetWorldTimerManager().ClearTimer(m_PaperburnTimerHandle);
+		UEnemyCombatManager* Manager = GetGameInstance()->GetSubsystem<UEnemyCombatManager>();
+		if (Manager)
+		{
+			Manager->ReleaseAttackSlot(this);
+		}
 		if (weaponClass)
 			m_SkillCom->DestroyWeapon();
 		Destroy();

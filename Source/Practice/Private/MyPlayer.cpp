@@ -102,6 +102,7 @@ AMyPlayer::AMyPlayer()
 	// 컴포넌트 생성 — 이름이 에디터에 표시됨
 	StrikeZone = CreateDefaultSubobject<UBoxComponent>(TEXT("StrikeZone"));
 	StrikeZone->SetupAttachment(RootComponent);
+	StrikeZone->SetVisibility(false);
 }
 
 // Called when the game starts or when spawned
@@ -162,9 +163,6 @@ void AMyPlayer::BeginPlay()
 	m_InitialCamRot = CamPivot->GetRelativeRotation();
 
 	InitPostProcessMaterial();
-
-	StrikeZone->SetHiddenInGame(false);        // 게임 중에도 표시
-	StrikeZone->SetVisibility(true);
 
 	m_BattingModeWidget->SetVisibility(false);
 }
@@ -388,6 +386,7 @@ void AMyPlayer::ExitBattingMode()
 		return;
 
 	m_CombatMode = ECombatMode::NORMAL;
+	SetMoveScale(1.f);
 
 	m_InputContainer->SetNormalMode(GetController());
 
@@ -506,14 +505,15 @@ float AMyPlayer::TakeDamage(float _Damage, FDamageEvent const& _DamageEvent, ACo
 	{
 		UE_LOG(LogTemp, Warning, TEXT("!!!Expolosion Damaged!!!"));
 
+		if (m_CombatMode == ECombatMode::BATTING)
+			ExitBattingMode();
+
 		if (m_StunMontage != nullptr)
 		{
 			m_IsStun = true;
-  			SetMoveScale(0.f);
+			SetMoveScale(0.f);
 			GetMesh()->GetAnimInstance()->Montage_Play(m_StunMontage);
 		}
-		if (m_CombatMode == ECombatMode::BATTING)
-			ExitBattingMode();
 	}
 	else
 	{

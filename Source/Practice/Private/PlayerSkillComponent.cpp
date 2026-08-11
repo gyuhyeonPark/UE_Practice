@@ -140,7 +140,7 @@ void UPlayerSkillComponent::ParryingFunc(EParryJudgementType _ParryType)
 	if (m_ParryingNiagaraCom && m_ParryingEffects[(int32)_ParryType].EffectData != nullptr)
 	{
 		m_ParryingNiagaraCom->DeactivateImmediate();
-		m_ParryingNiagaraCom->SetAsset(m_ParryingEffects[(int32)_ParryType].EffectData.Get());
+		m_ParryingNiagaraCom->SetAsset(m_ParryingEffects[(int32)_ParryType].EffectData.LoadSynchronous());
 		m_ParryingNiagaraCom->Activate(true);
 
 		m_ParryingNiagaraCom->SetWorldLocation(m_Weapon->GetHitSockPos());

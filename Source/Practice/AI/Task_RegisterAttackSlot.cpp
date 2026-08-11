@@ -8,10 +8,10 @@
 
 UTask_RegisterAttackSlot::UTask_RegisterAttackSlot()
 {
-    // Task¸¦ 1°³·Î µ¹·Á¾²´Â ±¸Á¶°¡
+    // Taskï¿½ï¿½ 1ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     bCreateNodeInstance = false;
 
-    // ¸Å ÇÁ·¹ÀÓ¸¶´Ù TickTask¸¦ È£Ãâ¹ÞÀ» Áö ¼³Á¤
+    // ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ó¸ï¿½ï¿½ï¿½ TickTaskï¿½ï¿½ È£ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
     bNotifyTick = false;
 }
 

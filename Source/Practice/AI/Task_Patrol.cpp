@@ -46,7 +46,7 @@ EBTNodeResult::Type UTask_Patrol::ExecuteTask(UBehaviorTreeComponent& OwnerComp,
 	const FVector MonsterLocation =
 		Pawn->GetActorLocation();
 
-	// ÇÃ·¹ÀÌ¾î -> ¸ó½ºÅÍ ¹æÇâ
+	// ï¿½Ã·ï¿½ï¿½Ì¾ï¿½ -> ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	FVector Direction =
 		MonsterLocation - TargetLocation;
 
@@ -59,11 +59,11 @@ EBTNodeResult::Type UTask_Patrol::ExecuteTask(UBehaviorTreeComponent& OwnerComp,
 
 	Direction.Normalize();
 
-	// ÇöÀç °¢µµ
+	// ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	float CurrentAngle =
 		FMath::Atan2(Direction.Y, Direction.X);
 
-	// ´ÙÀ½ À§Ä¡ÀÇ °¢µµ
+	// ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ä¡ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	CurrentAngle +=
 		FMath::DegreesToRadians(m_PatrolAngle);
 
@@ -73,13 +73,15 @@ EBTNodeResult::Type UTask_Patrol::ExecuteTask(UBehaviorTreeComponent& OwnerComp,
 	NextDirection.Y = FMath::Sin(CurrentAngle);
 	NextDirection.Z = 0.f;
 
-	// TargetÀ» Áß½ÉÀ¸·Î ¿øÇü À§Ä¡ °è»ê
+	// Targetï¿½ï¿½ ï¿½ß½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ä¡ ï¿½ï¿½ï¿½
 	const FVector Destination =
 		TargetLocation +
 		NextDirection * m_PatrolRadius;
 
-	// ÀÌµ¿
+	// ï¿½Ìµï¿½
 	AIController->MoveToLocation(Destination);
+
+	UE_LOG(LogTemp, Warning, TEXT("!!!Patrol EXECUTING!!!"));
 
 	return EBTNodeResult::InProgress;
 }
@@ -126,7 +128,7 @@ void UTask_Patrol::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory
 		return;
 	}
 
-	// TargetÀ» ¹Ù¶óº»´Ù.
+	// Targetï¿½ï¿½ ï¿½Ù¶óº»´ï¿½.
 	FVector Direction =
 		pTargetActor->GetActorLocation() -
 		Pawn->GetActorLocation();
@@ -139,7 +141,7 @@ void UTask_Patrol::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory
 			Direction.Rotation());
 	}
 
-	// ¸ñÀûÁö¿¡ µµÂøÇÏ¸é Task Á¾·á
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï¸ï¿½ Task ï¿½ï¿½ï¿½ï¿½
 	if (AIController->GetMoveStatus() ==
 		EPathFollowingStatus::Idle)
 	{

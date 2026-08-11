@@ -66,7 +66,7 @@ void APitchProjectile::BeginPlay()
 	if (m_TrailNiagaraCom && m_HostileTrailEffect)
 	{
 		m_TrailNiagaraCom->SetRelativeLocation(FVector::ZeroVector);
-		m_TrailNiagaraCom->SetAsset(m_HostileTrailEffect.Get());
+		m_TrailNiagaraCom->SetAsset(m_HostileTrailEffect.LoadSynchronous());
 		m_TrailNiagaraCom->ReinitializeSystem();
 	}
 }
@@ -120,12 +120,12 @@ void APitchProjectile::InitProjectile(APawn* _User, APawn* _Target, USkillDataBa
 	{
 		if (Cast<AMyPlayer>(m_SkillUser) && m_FriendlyTrailEffect)
 		{
-			m_TrailNiagaraCom->SetAsset(m_FriendlyTrailEffect.Get());
+			m_TrailNiagaraCom->SetAsset(m_FriendlyTrailEffect.LoadSynchronous());
 			m_TrailNiagaraCom->ReinitializeSystem();
 		}
 		else if (m_HostileTrailEffect)
 		{
-			m_TrailNiagaraCom->SetAsset(m_HostileTrailEffect.Get());
+			m_TrailNiagaraCom->SetAsset(m_HostileTrailEffect.LoadSynchronous());
 			m_TrailNiagaraCom->ReinitializeSystem();
 		}
 	}

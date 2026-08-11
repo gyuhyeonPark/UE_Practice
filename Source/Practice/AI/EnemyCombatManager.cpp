@@ -9,11 +9,11 @@ bool UEnemyCombatManager::TryAcquireAttackSlot(ANPC* _NPC)
     if (!_NPC)
         return false;
 
-    // ÀÌ¹Ì ½½·ÔÀ» °¡Áö°í ÀÖ´Ù¸é ¼º°ø
+    // ï¿½Ì¹ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ö´Ù¸ï¿½ ï¿½ï¿½ï¿½ï¿½
     if (m_AttackingNPCs.Contains(_NPC))
         return true;
 
-    // ½½·ÔÀÌ ²Ë Ã¡´Ù¸é ½ÇÆĞ
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ Ã¡ï¿½Ù¸ï¿½ ï¿½ï¿½ï¿½ï¿½
     if (m_AttackingNPCs.Num() >= m_MaxAttackers)
         return false;
 

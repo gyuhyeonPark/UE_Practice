@@ -123,7 +123,7 @@ bool USkillComponent::TryExecuteSkill(int32 _SlotIndex)
 	}
 
 	// 스킬 슬롯이 비어있는지 체크
-	if (!IsValid((*m_SelectedSkillSlot)[_SlotIndex].SkillData.Get()))
+	if (!IsValid((*m_SelectedSkillSlot)[_SlotIndex].SkillData.LoadSynchronous()))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Skill Asset is not Equipped"));
 		return false;
@@ -243,7 +243,7 @@ bool USkillComponent::IsHit(AActor* _HitActor)
 
 USkillDataBase* USkillComponent::GetSkillData(ESkillSlot slotNum)
 {
-	return m_SkillSlots[(int32)slotNum].SkillData.Get();;
+	return m_SkillSlots[(int32)slotNum].SkillData.LoadSynchronous();;
 }
 
 void USkillComponent::HitBoxOn()

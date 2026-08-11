@@ -68,6 +68,9 @@ void AMonsterController::OnTargetDetected(AActor* _Target, FAIStimulus _Stimulus
 	if (pMonster == nullptr)
 		return;
 
+	if (pMonster == _Target)
+		return;
+
 	ETeamAttitude::Type type = pMonster->GetTeamAttitudeTowards(*_Target);
 
 	// 적대관계일 시

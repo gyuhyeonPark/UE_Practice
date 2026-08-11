@@ -69,7 +69,7 @@ void UTask_UseSkill::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemo
 	if (pSkillCom == nullptr)
 		return;
 
-	const USkillDataMonster* pSkill = Cast<USkillDataMonster>(pSkillCom->GetCurSkillInfo().Get());
+	const USkillDataMonster* pSkill = Cast<USkillDataMonster>(pSkillCom->GetCurSkillInfo().LoadSynchronous());
 	if (pSkill == nullptr)
 		return;
 
