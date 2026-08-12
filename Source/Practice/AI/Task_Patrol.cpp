@@ -37,6 +37,11 @@ EBTNodeResult::Type UTask_Patrol::ExecuteTask(UBehaviorTreeComponent& OwnerComp,
 
 	APawn* Pawn = AIController->GetPawn();
 
+	if (Pawn == pTargetActor)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("!!!Target Same Problem!!!"));
+	}
+
 	if (!Pawn)
 		return EBTNodeResult::Failed;
 

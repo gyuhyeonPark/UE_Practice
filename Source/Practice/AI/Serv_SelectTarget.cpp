@@ -37,6 +37,11 @@ void UServ_SelectTarget::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* Node
 		if (!Info.Target.IsValid())
 			continue;
 
+		AActor* Target = Info.Target.Get();
+		// 자기 자신은 타겟 후보에서 제외
+		if (Target == pMonster)
+			continue;
+
 		// 최우선 순위는 어그로 유지
 		if (MaxAggro < Info.AggroValue)
 		{
